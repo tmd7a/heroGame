@@ -2,70 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Board Game Screen</title>
-    <style>
-        body { font-family: sans-serif; background: #222; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        .container { display: flex; justify-content: space-around; margin: 20px; }
-        .box { background: #333; padding: 20px; border-radius: 8px; width: 45%; position: relative; }
-        .hp-display { font-size: 3rem; font-weight: bold; color: #ff4757; }
-        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; background: #1e90ff; color: white; border: none; border-radius: 5px; margin: 5px; }
-        button:hover { background: #1175db; }
-        .btn-danger { background: #ff4757; margin-top: 20px; }
-        .btn-danger:hover { background: #ff6b81; }
-        
-        /* Attack & Bonus Container Layout */
-        .attack-area { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 15px; }
-        input[type="number"] { padding: 10px; font-size: 1rem; width: 120px; border-radius: 5px; border: none; }
-        
-        /* Dice Element Styling & Keyframes */
-        .bonus-container { display: none; align-items: center; gap: 10px; background: #444; padding: 8px 12px; border-radius: 6px; border: 1px dashed #ffd700; }
-        .dice { width: 40px; height: 40px; background: #fff; color: #222; font-weight: bold; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.1s; }
-        .dice:active { transform: scale(0.9); }
-        .dice.rolling { animation: tumble 0.5s ease-out; }
-        .bonus-label { font-size: 0.8rem; color: #ffd700; text-transform: uppercase; font-weight: bold; }
-        
-        /* Horizontal Round Grid Layout */
-        .round-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 900px; margin: 20px auto; padding: 10px; }
-        .round-cell { background: #2c3e50; border: 2px solid #34495e; border-radius: 6px; width: 70px; padding: 10px 0; text-align: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
-        .round-cell.active { border-color: #1e90ff; background: #34495e; }
-        .round-cell.filled { border-color: #ff4757; background: #4d2327; }
-        .round-num { font-size: 0.75rem; color: #aaa; text-transform: uppercase; margin-bottom: 4px; }
-        .round-dmg { font-size: 1.3rem; font-weight: bold; color: #fff; }
-        
-        /* Role Indicator Banner */
-        .role-banner { background: #444; padding: 8px; border-radius: 5px; display: inline-block; font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
-        .hero-role { border: 2px solid #1e90ff; color: #1e90ff; }
-        .villain-role { border: 2px solid #d63031; color: #d63031; }
-
-        /* NEW: Game Over Screen Overlay Styling */
-        .game-over-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
-        .game-over-box { background: #2d3436; padding: 40px; border-radius: 12px; border: 3px solid #fff; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); }
-        .game-over-title { font-size: 3.5rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
-        .game-over-msg { font-size: 1.5rem; margin-bottom: 25px; color: #dfe6e9; }
-        .win-theme { border-color: #2ecc71; }
-        .win-theme .game-over-title { color: #2ecc71; }
-        .loss-theme { border-color: #e74c3c; }
-        .loss-theme .game-over-title { color: #e74c3c; }
-
-        @keyframes tumble {
-            0% { transform: rotate(0deg) scale(1); }
-            30% { transform: rotate(180deg) scale(1.2); }
-            70% { transform: rotate(360deg) scale(1.2); }
-            100% { transform: rotate(720deg) scale(1); }
-        }
-    </style>
+    <!-- Links your external style sheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- Role Banner & Villainess Curse Setup -->
     <div id="roleIndicator" class="role-banner hero-role">Role: Hero (Player 1)</div>
-    <h1>Trial of the Hero - Gameboard</h1>
+
+    <h1>Hero's Trial</h1>
     
     <div class="container">
-        <!-- HP and Attack Section -->
+        <!-- HP, Curse and Attack Section -->
         <div class="box">
             <h2>Match HP Status</h2>
             <div>Remaining HP / Starting HP</div>
             <div class="hp-display"><span id="remHp">--</span> / <span id="startHp">--</span></div>
+    <!-- Villainess D20 Curse Setup Control Area -->
+    <div id="villainSetup" class="villain-setup-container" style="display: none;">
+        <div class="curse-label">Roll for Curse:</div>
+        <div id="vDiceElement" class="v-dice" onclick="rollCurseDice()">d20</div>
+    </div>
+            
+            <!-- NEW: Thematic Curse Element -->
+            <div id="curseDisplayBox" class="curse-badge">
+                <span class="curse-icon">🔮</span> Curse Modifier: +<span id="curseValue">0</span>
+            </div>
             
             <!-- Hero Interactive Group -->
             <div class="hero-control">
@@ -102,7 +66,7 @@
     <!-- Hero Interactive Group -->
     <button id="resetBtn" class="btn-danger hero-control" onclick="confirmReset()">🔄 Reset Entire Game</button>
 
-    <!-- NEW: Game Over Screen Overlay Element Structure -->
+    <!-- Game Over Screen Overlay Element Structure -->
     <div id="gameOverOverlay" class="game-over-overlay">
         <div id="gameOverBox" class="game-over-box">
             <div id="gameOverTitle" class="game-over-title">Victory!</div>
@@ -111,205 +75,7 @@
         </div>
     </div>
 
-<script>
-    const API_URL = "https://google.com";
-    const categories1 = ["Domme", "Influencer/Brat", "Adult Star", "Celebrity", "Captions"];
-    const categories2 = ["Blonde","Red","Brunette"];
-
-    let lastRoundScore = 0;
-    let activeBonusValue = 0; 
-    let isRolling = false;
-    let userRole = "hero"; // Fallback assignment role variable
-
-    // NEW: Check URL variables immediately on execution
-    function checkPlayerRole() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const roleParam = urlParams.get('role');
-
-        console.log(roleParam);
-        
-        if (roleParam === 'villainess') {
-            userRole = "villainess";
-            
-            // Alter top tracking tag styling
-            const indicator = document.getElementById('roleIndicator');
-            indicator.innerText = "Role: Villainess (Player 2 - Read Only)";
-            indicator.className = "role-banner villain-role";
-
-            // Hide all interactive hero control structures using modern selector loops
-            document.querySelectorAll('.hero-control').forEach(element => {
-                element.style.display = 'none';
-            });
-        } else {
-            userRole = "hero";
-            document.getElementById('roleIndicator').innerText = "Role: Hero (Player 1)";
-        }
-    }
-
-    // Update screen elements with fresh data
-    function updateUI(data) {
-        const remHp = parseInt(data.remainingHp);
-        const startHp = parseInt(data.startingHp);
-        const maxRounds = parseInt(data.maxRounds) || 15; 
-
-        document.getElementById('startHp').innerText = startHp;
-        document.getElementById('remHp').innerText = remHp;
-        document.getElementById('spin1Val').innerText = data.spinner1 || "None";
-        document.getElementById('spin2Val').innerText = data.spinner2 || "None";
-        
-        let gridHtml = "";
-        let finalActiveScore = 0;
-        let nextEmptyFound = false;
-        let filledCount = 0;
-
-        for (let i = 0; i < maxRounds; i++) {
-            let dmg = data.scores[i];
-            let cellClass = "round-cell";
-            let displayDmg = "-";
-
-            if (dmg > 0 || dmg === "0" || dmg === 0) {
-                if (data.scores[i] !== "" && data.scores[i] !== undefined && data.scores[i] !== 0) {
-                    cellClass += " filled";
-                    displayDmg = data.scores[i];
-                    finalActiveScore = parseInt(data.scores[i]);
-                    filledCount++;
-                } else if (!nextEmptyFound) {
-                    cellClass += " active";
-                    nextEmptyFound = true;
-                }
-            }
-        }
-        document.getElementById('roundGrid').innerHTML = gridHtml;
-
-        // Check if previous round score was exactly 10
-        if (finalActiveScore === 10 && userRole === "hero") {
-            document.getElementById('bonusBox').style.display = 'flex';
-        } else {
-            document.getElementById('bonusBox').style.display = 'none';
-            document.getElementById('diceElement').innerText = "?";
-            activeBonusValue = 0;
-        }
-
-        // NEW: Game Over Resolution Processing Engine
-        const overlay = document.getElementById('gameOverOverlay');
-        const goBox = document.getElementById('gameOverBox');
-        const goTitle = document.getElementById('gameOverTitle');
-        const goMsg = document.getElementById('gameOverMsg');
-
-if (remHp <= 0) {
-    // CONDITION A: Hero loses, Villainess wins
-    overlay.style.display = 'flex';
-    goBox.className = "game-over-box loss-theme";
-    if (userRole === "hero") {
-        goTitle.innerText = "Defeat!";
-        goMsg.innerText = "Your HP fell to 0. The Villainess wins the match!";
-    } else {
-        goTitle.innerText = "Victory!";
-        goBox.className = "game-over-box win-theme";
-        goMsg.innerText = "The Hero's HP has been completely reduced to 0. You break his resolve and win!";
-    }
-} else if (filledCount >= maxRounds && remHp > 0) {
-    // CONDITION B: Hero survives all allocated blocks, Villainess loses
-    overlay.style.display = 'flex';
-    goBox.className = "game-over-box win-theme";
-    if (userRole === "hero") {
-        goTitle.innerText = "Victory!";
-        goMsg.innerText = You successfully endured all $ {
-            maxRounds
-        }
-        rounds with $ {
-            remHp
-        }
-        HP remaining.You win ! ;
-    } else {
-        goTitle.innerText = "Defeat!";
-        goBox.className = "game-over-box loss-theme";
-        goMsg.innerText = The Hero successfully survived all $ {
-            maxRounds
-        }
-        rounds of attacks.You lose.;
-    }
-} else {
-    // Normal operating safety fallback (ensures resetting cleans the splash slate)
-    overlay.style.display = 'none';
-}
-}
-function rollBonusDice() {
-    if (isRolling) return;
-    isRolling = true;
-    const dice = document.getElementById('diceElement');
-    dice.classList.add('rolling');
-    let intervals = setInterval(() = >{
-        dice.innerText = Math.floor(Math.random() * 6) + 1;
-    },
-    60);
-    setTimeout(() = >{
-        clearInterval(intervals);
-        dice.classList.remove('rolling');
-        activeBonusValue = Math.floor(Math.random() * 6) + 1;
-        dice.innerText = activeBonusValue;
-        isRolling = false;
-    },
-    500);
-}
-async
-function fetchGameState() {
-    try {
-        let response = await fetch(API_URL);
-        let data = await response.json();
-        updateUI(data);
-    } catch(err) {
-        console.error("Error fetching state:", err);
-    }
-}
-async
-function spinWheels() {
-    let pick1 = categories1[Math.floor(Math.random() * categories1.length)];
-    let pick2 = categories2[Math.floor(Math.random() * categories2.length)];
-    document.getElementById('spin1Val').innerText = "Spinning...";
-    document.getElementById('spin2Val').innerText = "Spinning...";
-    let response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "updateSpinners",
-            spinner1: pick1,
-            spinner2: pick2
-        })
-    });
-    let data = await response.json();
-    updateUI(data);
-}
-async
-function submitScore() {
-    if (isRolling) return alert("Wait for the dice to finish rolling!");
-    let baseScore = parseInt(document.getElementById('scoreInput').value);
-    if (isNaN(baseScore) || baseScore <= 0) return alert("Enter a valid damage number");
-    let finalScoreToSend = baseScore + activeBonusValue;
-    document.getElementById('scoreInput').value = "";
-    let response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "submitScore",
-            score: finalScoreToSend
-        })
-    });
-    let data = await response.json();
-    updateUI(data);
-}
-async
-function confirmReset() {
-    let verify = confirm("Are you sure you want to completely reset the game? This will wipe out all categories and round data.");
-    if (!verify) return;
-    let response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "resetGame"
-        })
-    });
-    let data = await response.json();
-    updateUI(data);
-}
-// Initialize environment loops
-checkPlayerRole();
-setInterval(fetchGameState, 2000);
-fetchGameState();
+    <!-- Links your external JavaScript game engine -->
+    <script src="game.js"></script>
+</body>
+</html>
