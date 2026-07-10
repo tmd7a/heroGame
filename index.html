@@ -125,6 +125,8 @@
     function checkPlayerRole() {
         const urlParams = new URLSearchParams(window.location.search);
         const roleParam = urlParams.get('role');
+
+        console.debug(roleParam);
         
         if (roleParam === 'villainess') {
             userRole = "villainess";
