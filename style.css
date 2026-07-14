@@ -293,4 +293,93 @@ input[type="number"] {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 
+    gap: 15px;
+    margin: 15px auto;
+    max-width: 950px;
+    flex-wrap: wrap;
+}
+.stat-card {
+    background: #2d3436;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+.btn-history {
+    background: #2c3e50;
+    color: #ecf0f1;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border: 1px solid #7f8c8d;
+}
+.btn-history:hover {
+    background: #34495e;
+}
+
+/* History Modal Pop-up Layout Base Structure */
+.history-modal-overlay {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.history-modal-content {
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 850px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+.history-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #444;
+    background: #2d3436;
+}
+.history-modal-header h2 { margin: 0; font-size: 1.3rem; color: #ffd700;}
+.close-modal-btn {
+    font-size: 2rem;
+    cursor: pointer;
+    color: #aaa;
+}
+.close-modal-btn:hover { color: #fff; }
+
+/* History Data Table Look */
+.history-table-container {
+    overflow-y: auto;
+    padding: 15px;
+}
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.85rem;
+}
+.history-table th {
+    background: #2c3e50;
+    color: #fff;
+    padding: 10px;
+    border: 1px solid #444;
+}
+.history-table td {
+    padding: 8px 10px;
+    border: 1px solid #333;
+}
+.history-table tr:nth-child(even) {
+    background: #2a2a2a;
+}
+.history-table tr:hover {
+    background: #333;
+}
+.history-winner-hero { color: #1e90ff; font-weight: bold; }
+.history-winner-villain { color: #ff4757; font-weight: bold; }
