@@ -43,6 +43,55 @@ function updateUI(data) {
     document.getElementById('spin1Val').innerText = data.spinner1 || "None";
     document.getElementById('spin2Val').innerText = data.spinner2 || "None";
     
+    // NEW: Update Global Win/Loss Counters
+    document.getElementById('heroWinCount').innerText = data.heroWins || 0;
+    document.getElementById('villainWinCount').innerText = data.villainessWins || 0;
+    
+    // NEW: Update Running Streak Tracking Element Context
+    const streakCard = document.getElementById('streakCard');
+    const streakDisplay = document.getElementById('streakDisplay');
+    const streakWinner = data.currentStreakWinner || "None";
+    const streakCount = data.currentStreakCount || 0;
+
+    if (streakWinner === "Villainess" && streakCount > 0) {
+        streakDisplay.innerText = `Villainess 🔥 ${streakCount} Wins (+${streakCount * 5} HP Catchup Active)`;
+        streakCard.style.borderColor = "#ff4757";
+    } else if (streakWinner === "Hero" && streakCount > 0) {
+        streakDisplay.innerText = `Hero 🌟 ${streakCount} Wins`;
+        streakCard.style.borderColor = "#1e90ff";
+    } else {
+        streakDisplay.innerText = "No Active Streak";
+        streakCard.style.borderColor = "#444";
+    }
+
+    // NEW: Build the Descending History Log Elements Dynamically
+    let tableHtml = "";
+    if (data.rawHistory && data.rawHistory.length > 0) {
+        data.rawHistory.forEach(item => {
+            let winClass = item.winner === "Hero" ? "history-winner-hero" : "history-winner-villain";
+            
+            // Clean up Sheets generic datetime string formats for visibility
+            let displayDate = String(item.date).split('T')[0] || item.date;
+
+            tableHtml += `
+                <tr>
+                    <td>${displayDate}</td>
+                    <td class="${winClass}">${item.winner}</td>
+                    <td>${item.cat1}</td>
+                    <td>${item.cat2}</td>
+                    <td>${item.startHp}</td>
+                    <td>${item.finalHp}</td>
+                    <td>${item.rounds}</td>
+                    <td>+${item.curse}</td>
+                </tr>
+            `;
+        });
+    } else {
+        tableHtml = `<tr><td colspan="8" style="text-align:center; color:#999;">No logged matches found. Finish a match to generate records!</td></tr>`;
+    }
+    document.getElementById('historyTableBody').innerHTML = tableHtml;
+    
+    
     // NEW: Update Curse Value UI Counter
     document.getElementById('curseValue').innerText = currentCurse;
 
@@ -265,6 +314,12 @@ function rollCurseDice() {
             vDice.innerText = "d20";
         }
     }, 600);
+}
+
+// Controls Modal view display bounds toggles
+function toggleHistoryModal(show) {
+    const modal = document.getElementById('historyModal');
+    modal.style.display = show ? 'flex' : 'none';
 }
 
 // Execute core cycles
