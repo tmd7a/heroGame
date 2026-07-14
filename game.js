@@ -322,6 +322,7 @@ function toggleHistoryModal(show) {
     modal.style.display = show ? 'flex' : 'none';
 }
 
+
 // Execute core cycles
 checkPlayerRole();
 setInterval(fetchGameState, 2000);
