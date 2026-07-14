@@ -287,3 +287,10 @@ input[type="number"] {
     animation: tumble 0.6s ease-out;
     background: #831054;
 }
+
+/* Record Panel Summary Grid Layout */
+.record-dashboard {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 
