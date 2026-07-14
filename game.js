@@ -244,7 +244,12 @@ async function submitScore() {
 
     let response = await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "submitScore", score: finalScoreToSend })
+        // FIX: Passing BOTH the final calculation and the structural raw base value to backend
+        body: JSON.stringify({ 
+            action: "submitScore", 
+            score: finalScoreToSend, 
+            baseInputScore: baseScore 
+        })
     });
     let data = await response.json();
     updateUI(data);
