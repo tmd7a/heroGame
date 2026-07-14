@@ -63,8 +63,17 @@
     <h3>Match Progress</h3>
     <div id="roundGrid" class="round-grid"></div>
 
+    <!-- New: Global Record & Streak Banner Dashboard Grid Element -->
+    <div class="record-dashboard">
+        <div class="stat-card">Hero Lifetime Wins: <span id="heroWinCount" style="color:#1e90ff; font-weight:bold;">0</span></div>
+        <div class="stat-card">Villainess Lifetime Wins: <span id="villainWinCount" style="color:#ff4757; font-weight:bold;">0</span></div>
+        <div class="stat-card" id="streakCard">Current Streak: <span id="streakDisplay">None</span></div>
+        <button class="btn-history" onclick="toggleHistoryModal(true)">📜 View Match History Logs</button>
+    </div>
+    
     <!-- Hero Interactive Group -->
     <button id="resetBtn" class="btn-danger hero-control" onclick="confirmReset()">🔄 Reset Entire Game</button>
+    
 
     <!-- Game Over Screen Overlay Element Structure -->
     <div id="gameOverOverlay" class="game-over-overlay">
@@ -72,6 +81,35 @@
             <div id="gameOverTitle" class="game-over-title">Victory!</div>
             <div id="gameOverMsg" class="game-over-msg">Message goes here.</div>
             <button id="overlayResetBtn" class="btn-danger hero-control" onclick="confirmReset()">🔄 Clear & Start New Match</button>
+        </div>
+    </div>
+
+    <!-- NEW: History Logs Modal popup structure -->
+    <div id="historyModal" class="history-modal-overlay">
+        <div class="history-modal-content">
+            <div class="history-modal-header">
+                <h2>Game History Logs (Newest First)</h2>
+                <span class="close-modal-btn" onclick="toggleHistoryModal(false)">&times;</span>
+            </div>
+            <div class="history-table-container">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Winner</th>
+                            <th>Category 1</th>
+                            <th>Category 2</th>
+                            <th>Start HP</th>
+                            <th>Final HP</th>
+                            <th>Rounds</th>
+                            <th>Curse</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Instantiated dynamically inside javascript loops -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
