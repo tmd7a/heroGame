@@ -106,13 +106,13 @@ function updateUI(data) {
     }
 
     let gridHtml = "";
-    let finalActiveScore = 0;
+    let finalRawBaseScore = 0; // NEW: Explicitly track the base score value
     let nextEmptyFound = false;
     let filledCount = 0;
 
-    // Generate structural dynamic cells
     for (let i = 0; i < maxRounds; i++) {
         let dmg = data.scores[i];
+        let baseDmg = data.baseScores ? data.baseScores[i] : 0; // Get raw base score
         let cellClass = "round-cell";
         let displayDmg = "-";
 
@@ -121,7 +121,7 @@ function updateUI(data) {
             if (!isNaN(parsedDmg) && parsedDmg >= 0 && data.scores[i] !== "") {
                 cellClass += " filled";
                 displayDmg = parsedDmg;
-                finalActiveScore = parsedDmg; 
+                finalRawBaseScore = parseInt(baseDmg) || 0; // Log the latest filled round's base score
                 filledCount++;
             } else if (!nextEmptyFound) {
                 cellClass += " active";
@@ -141,8 +141,8 @@ function updateUI(data) {
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
-    // Control Bonus Dice Box Visibility
-    if (finalActiveScore === 10 && userRole === "hero") {
+    // FIX: Look strictly at the final raw base score to display bonus dice box!
+    if (finalRawBaseScore === 10 && userRole === "hero") {
         document.getElementById('bonusBox').style.display = 'flex';
     } else {
         document.getElementById('bonusBox').style.display = 'none';
