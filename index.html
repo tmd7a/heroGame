@@ -9,30 +9,53 @@
 </head>
 <body>
 
-    <!-- Role Banner & Villainess Curse Setup -->
+    <!-- Role Banner & Villainess Curse Setup Layout Header -->
     <div id="roleIndicator" class="role-banner hero-role">Role: Hero (Player 1)</div>
-
-    <h1>Hero's Trial</h1>
     
-    <div class="container">
-        <!-- HP, Curse and Attack Section -->
-        <div class="box">
-            <h2>Match HP Status</h2>
-            <div>Remaining HP / Starting HP</div>
-            <div class="hp-display"><span id="remHp">--</span> / <span id="startHp">--</span></div>
     <!-- Villainess D20 Curse Setup Control Area -->
     <div id="villainSetup" class="villain-setup-container" style="display: none;">
         <div class="curse-label">Roll for Curse:</div>
         <div id="vDiceElement" class="v-dice" onclick="rollCurseDice()">d20</div>
     </div>
+
+    <!-- Global Record & Streak Banner Dashboard Grid Element -->
+    <div class="record-dashboard">
+        <div class="stat-card">Hero Lifetime Wins: <span id="heroWinCount" style="color:#1e90ff; font-weight:bold;">0</span></div>
+        <div class="stat-card">Villainess Lifetime Wins: <span id="villainWinCount" style="color:#ff4757; font-weight:bold;">0</span></div>
+        <div class="stat-card" id="streakCard">Current Streak: <span id="streakDisplay">None</span></div>
+        <button class="btn-history" onclick="toggleHistoryModal(true)">📜 View Match History Logs</button>
+    </div>
+
+    <h1>Hero's Trial</h1>
+    
+    <!-- Global Synced Network Active Card Combat Field Grid -->
+    <div class="combat-field-arena">
+        <h3>Cards In Play For This Attack Round</h3>
+        <div id="activeCombatZone" class="active-cards-grid">
+            <div class="field-placeholder">No cards activated yet for this round...</div>
+        </div>
+    </div>
+
+    <!-- Player's Private Card Hand Storage Deck Container -->
+    <div class="player-hand-section">
+        <h3>Your Available Match Cards</h3>
+        <div id="playerHandGrid" class="cards-grid"></div>
+    </div>
+    
+    <div class="container">
+        <!-- HP, Curse, and Attack Section -->
+        <div class="box">
+            <h2>Match HP Status</h2>
+            <div>Remaining HP / Starting HP</div>
+            <div class="hp-display"><span id="remHp">--</span> / <span id="startHp">--</span></div>
             
-            <!-- NEW: Thematic Curse Element -->
+            <!-- Thematic Curse Element Panel -->
             <div id="curseDisplayBox" class="curse-badge">
                 <span class="curse-icon">🔮</span> Curse Modifier: +<span id="curseValue">0</span>
             </div>
             
-            <!-- Hero Interactive Group -->
-            <div class="hero-control">
+            <!-- Hero Interactive Group Controls -->
+            <div class="hero-control" style="margin-top: 20px;">
                 <h3>Submit Attack Score</h3>
                 <div class="attack-area">
                     <input type="number" id="scoreInput" placeholder="Base damage">
@@ -54,7 +77,7 @@
             <p>Content Category: <strong id="spin1Val" style="color:#00d2d3">None</strong></p>
             <p>Parameters: <strong id="spin2Val" style="color:#00d2d3">None</strong></p>
             
-            <!-- Hero Interactive Group -->
+            <!-- Hero Interactive Group Controls -->
             <button class="hero-control" onclick="spinWheels()">Spin Both Wheels</button>
         </div>
     </div>
@@ -63,17 +86,8 @@
     <h3>Match Progress</h3>
     <div id="roundGrid" class="round-grid"></div>
 
-    <!-- New: Global Record & Streak Banner Dashboard Grid Element -->
-    <div class="record-dashboard">
-        <div class="stat-card">Hero Lifetime Wins: <span id="heroWinCount" style="color:#1e90ff; font-weight:bold;">0</span></div>
-        <div class="stat-card">Villainess Lifetime Wins: <span id="villainWinCount" style="color:#ff4757; font-weight:bold;">0</span></div>
-        <div class="stat-card" id="streakCard">Current Streak: <span id="streakDisplay">None</span></div>
-        <button class="btn-history" onclick="toggleHistoryModal(true)">📜 View Match History Logs</button>
-    </div>
-    
-    <!-- Hero Interactive Group -->
+    <!-- Hero Interactive Group Controls -->
     <button id="resetBtn" class="btn-danger hero-control" onclick="confirmReset()">🔄 Reset Entire Game</button>
-    
 
     <!-- Game Over Screen Overlay Element Structure -->
     <div id="gameOverOverlay" class="game-over-overlay">
@@ -84,7 +98,7 @@
         </div>
     </div>
 
-    <!-- NEW: History Logs Modal popup structure -->
+    <!-- History Logs Modal Popup Overlay Structure -->
     <div id="historyModal" class="history-modal-overlay">
         <div class="history-modal-content">
             <div class="history-modal-header">
@@ -112,8 +126,7 @@
             </div>
         </div>
     </div>
-    
- 
+
     <!-- Links your external JavaScript game engine -->
     <script src="game.js"></script>
 </body>
