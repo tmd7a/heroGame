@@ -19,7 +19,7 @@ function checkPlayerRole() {
         indicator.innerText = "Role: Villainess (Player 2)";
         indicator.className = "role-banner villain-role";
 
-        // Hide Hero elements
+        // Hide all interactive components for Player 2
         document.querySelectorAll('.hero-control').forEach(element => {
             element.style.display = 'none';
         });
@@ -27,7 +27,8 @@ function checkPlayerRole() {
         userRole = "hero";
         document.getElementById('roleIndicator').innerText = "Role: Hero (Player 1)";
         // Hide Villainess setup elements from Hero view completely
-        document.getElementById('villainSetup').style.display = 'none';
+        const villainSetupBox = document.getElementById('villainSetup');
+        if (villainSetupBox) villainSetupBox.style.display = 'none';
     }
 }
 
@@ -42,77 +43,110 @@ function updateUI(data) {
     document.getElementById('remHp').innerText = remHp;
     document.getElementById('spin1Val').innerText = data.spinner1 || "None";
     document.getElementById('spin2Val').innerText = data.spinner2 || "None";
-    
-    // NEW: Update Global Win/Loss Counters
+    document.getElementById('curseValue').innerText = currentCurse;
+
+    // Toggle Curse Input Lock Status for Villainess
+    if (userRole === "villainess") {
+        const setupBox = document.getElementById('villainSetup');
+        if (setupBox) {
+            if (currentCurse > 0) setupBox.style.display = 'none';
+            else setupBox.style.display = 'inline-flex';
+        }
+    }
+
+    // Update Global Record Stats Counters
     document.getElementById('heroWinCount').innerText = data.heroWins || 0;
     document.getElementById('villainWinCount').innerText = data.villainessWins || 0;
     
-    // NEW: Update Running Streak Tracking Element Context
     const streakCard = document.getElementById('streakCard');
     const streakDisplay = document.getElementById('streakDisplay');
     const streakWinner = data.currentStreakWinner || "None";
     const streakCount = data.currentStreakCount || 0;
 
     if (streakWinner === "Villainess" && streakCount > 0) {
-        streakDisplay.innerText = `Villainess 🔥 ${streakCount} Wins (+${streakCount * 5} HP Catchup Active)`;
-        streakCard.style.borderColor = "#ff4757";
+        streakDisplay.innerText = `Villainess 🔥 ${streakCount} Wins (+${streakCount * 5} HP Catchup)`;
+        if (streakCard) streakCard.style.borderColor = "#ff4757";
     } else if (streakWinner === "Hero" && streakCount > 0) {
         streakDisplay.innerText = `Hero 🌟 ${streakCount} Wins`;
-        streakCard.style.borderColor = "#1e90ff";
+        if (streakCard) streakCard.style.borderColor = "#1e90ff";
     } else {
         streakDisplay.innerText = "No Active Streak";
-        streakCard.style.borderColor = "#444";
+        if (streakCard) streakCard.style.borderColor = "#444";
     }
 
-    // NEW: Build the Descending History Log Elements Dynamically
-    let tableHtml = "";
-    if (data.rawHistory && data.rawHistory.length > 0) {
-        data.rawHistory.forEach(item => {
-            let winClass = item.winner === "Hero" ? "history-winner-hero" : "history-winner-villain";
-            
-            // Clean up Sheets generic datetime string formats for visibility
-            let displayDate = String(item.date).split('T')[0] || item.date;
-
-            tableHtml += `
-                <tr>
-                    <td>${displayDate}</td>
-                    <td class="${winClass}">${item.winner}</td>
-                    <td>${item.cat1}</td>
-                    <td>${item.cat2}</td>
-                    <td>${item.startHp}</td>
-                    <td>${item.finalHp}</td>
-                    <td>${item.rounds}</td>
-                    <td>+${item.curse}</td>
-                </tr>
+    // ==========================================
+    // VISUAL RENDER BLOCK: THE ACTIVE COMBAT FIELD
+    // ==========================================
+    let fieldHtml = "";
+    if (data.activeFieldCards && data.activeFieldCards.length > 0) {
+        data.activeFieldCards.forEach(card => {
+            let roleClass = card.role === "hero" ? "card-hero" : "card-villainess";
+            fieldHtml += `
+                <div class="game-card ${roleClass}">
+                    <div class="card-header-title">${card.name}</div>
+                    <div class="card-body-desc">${card.desc}</div>
+                    <div style="font-size:0.65rem; color:#888; text-align:center;">IN PLAY</div>
+                </div>
             `;
         });
     } else {
-        tableHtml = `<tr><td colspan="8" style="text-align:center; color:#999;">No logged matches found. Finish a match to generate records!</td></tr>`;
+        fieldHtml = `<div class="field-placeholder">No cards activated yet for this round...</div>`;
     }
-    document.getElementById('historyTableBody').innerHTML = tableHtml;
-    
-    
-    // NEW: Update Curse Value UI Counter
-    document.getElementById('curseValue').innerText = currentCurse;
+    const combatZoneEl = document.getElementById('activeCombatZone');
+    if (combatZoneEl) combatZoneEl.innerHTML = fieldHtml;
 
-    // NEW: Toggle Curse Input Lock Status for Villainess
-    if (userRole === "villainess") {
-        const setupBox = document.getElementById('villainSetup');
-        if (currentCurse > 0) {
-            setupBox.style.display = 'none'; // Lock out / hide once set
-        } else {
-            setupBox.style.display = 'inline-flex'; // Open if blank/unassigned
-        }
+    // ==========================================
+    // VISUAL RENDER BLOCK: PLAYER PRIVATE HAND
+    // ==========================================
+    let handHtml = "";
+    let currentHand = userRole === "hero" ? data.heroCards : data.villainessCards;
+    
+    // Check if the current round has been Silenced by the alternative player
+    let isSilenced = false;
+    if (data.activeFieldCards) {
+        isSilenced = data.activeFieldCards.some(c => c.id === "V_TRIG");
     }
 
+    if (currentHand && currentHand.length > 0) {
+        currentHand.forEach(card => {
+            let roleClass = card.role === "hero" || userRole === "hero" ? "card-hero" : "card-villainess";
+            let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced);
+            let cardClass = `game-card ${roleClass}` + (isDisabled ? " disabled" : "");
+            
+            let stampLabel = "";
+            if (card.spent) stampLabel = `<div class="card-stamp-locked">SPENT</div>`;
+            else if (card.lockedByRound) stampLabel = `<div class="card-stamp-locked">LOCKED (RND)</div>`;
+            else if (userRole === "hero" && isSilenced) stampLabel = `<div class="card-stamp-locked">SILENCED</div>`;
+
+            handHtml += `
+                <div class="${cardClass}">
+                    ${stampLabel}
+                    <div class="card-header-title">${card.name}</div>
+                    <div class="card-body-desc">${card.desc}</div>
+                    <button class="btn-play-card" ${isDisabled ? 'disabled' : ''} 
+                        onclick="activateCard('${card.id}', '${card.effectType}', ${card.value || 0}, '${card.name.replace(/'/g, "\\'")}', '${card.desc.replace(/'/g, "\\'")}')">
+                        Activate Power
+                    </button>
+                </div>
+            `;
+        });
+    } else {
+        handHtml = `<div class="field-placeholder">No cards assigned. Reset game to draw hands.</div>`;
+    }
+    const handGridEl = document.getElementById('playerHandGrid');
+    if (handGridEl) handGridEl.innerHTML = handHtml;
+
+        // ==========================================
+    // MATCH PROGRESS CELLS RENDER LOOP
+    // ==========================================
     let gridHtml = "";
-    let finalRawBaseScore = 0; // NEW: Explicitly track the base score value
+    let finalRawBaseScore = 0;
     let nextEmptyFound = false;
     let filledCount = 0;
 
     for (let i = 0; i < maxRounds; i++) {
         let dmg = data.scores[i];
-        let baseDmg = data.baseScores ? data.baseScores[i] : 0; // Get raw base score
+        let baseDmg = data.baseScores ? data.baseScores[i] : 0;
         let cellClass = "round-cell";
         let displayDmg = "-";
 
@@ -121,27 +155,21 @@ function updateUI(data) {
             if (!isNaN(parsedDmg) && parsedDmg >= 0 && data.scores[i] !== "") {
                 cellClass += " filled";
                 displayDmg = parsedDmg;
-                finalRawBaseScore = parseInt(baseDmg) || 0; // Log the latest filled round's base score
+                finalRawBaseScore = parseInt(baseDmg) || 0; // Tracks natural base damage
                 filledCount++;
             } else if (!nextEmptyFound) {
-                cellClass += " active";
+                cellClass += " active"; 
                 nextEmptyFound = true;
             }
         } else if (!nextEmptyFound) {
-            cellClass += " active";
+            cellClass += " active"; 
             nextEmptyFound = true;
         }
-
-        gridHtml += `
-            <div class="${cellClass}">
-                <div class="round-num">Rnd ${i + 1}</div>
-                <div class="round-dmg">${displayDmg}</div>
-            </div>
-        `;
+        gridHtml += `<div class="${cellClass}"><div class="round-num">Rnd ${i + 1}</div><div class="round-dmg">${displayDmg}</div></div>`;
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
-    // FIX: Look strictly at the final raw base score to display bonus dice box!
+    // Control Bonus Dice Box Visibility based strictly on final base score
     if (finalRawBaseScore === 10 && userRole === "hero") {
         document.getElementById('bonusBox').style.display = 'flex';
     } else {
@@ -159,33 +187,45 @@ function updateUI(data) {
     if (remHp <= 0) {
         overlay.style.display = 'flex';
         if (userRole === "hero") {
-            goBox.className = "game-over-box loss-theme";
-            goTitle.innerText = "Defeat!";
+            goBox.className = "game-over-box loss-theme"; 
+            goTitle.innerText = "Defeat!"; 
             goMsg.innerText = "Your HP fell to 0. The Villainess wins the match!";
         } else {
-            goBox.className = "game-over-box win-theme";
-            goTitle.innerText = "Victory!";
+            goBox.className = "game-over-box win-theme"; 
+            goTitle.innerText = "Victory!"; 
             goMsg.innerText = "The Hero's HP has been completely reduced to 0. You break his resolve and win!";
         }
     } 
     else if (filledCount >= maxRounds && remHp > 0) {
         overlay.style.display = 'flex';
         if (userRole === "hero") {
-            goBox.className = "game-over-box win-theme";
-            goTitle.innerText = "Victory!";
+            goBox.className = "game-over-box win-theme"; 
+            goTitle.innerText = "Victory!"; 
             goMsg.innerText = `You successfully endured all ${maxRounds} rounds with ${remHp} HP remaining. You win!`;
         } else {
-            goBox.className = "game-over-box loss-theme";
-            goTitle.innerText = "Defeat!";
+            goBox.className = "game-over-box loss-theme"; 
+            goTitle.innerText = "Defeat!"; 
             goMsg.innerText = `The Hero successfully survived all ${maxRounds} rounds of attacks. You lose.`;
         }
-    } 
-    else {
-        overlay.style.display = 'none';
+    } else { 
+        overlay.style.display = 'none'; 
     }
+
+    // Update Descending History Table
+    let tableHtml = "";
+    if (data.rawHistory && data.rawHistory.length > 0) {
+        data.rawHistory.forEach(item => {
+            let winClass = item.winner === "Hero" ? "history-winner-hero" : "history-winner-villain";
+            let displayDate = String(item.date).split('T') || item.date;
+            tableHtml += `<tr><td>${displayDate}</td><td class="${winClass}">${item.winner}</td><td>${item.cat1}</td><td>${item.cat2}</td><td>${item.startHp}</td><td>${item.finalHp}</td><td>${item.rounds}</td><td>+${item.curse}</td></tr>`;
+        });
+    } else {
+        tableHtml = `<tr><td colspan="8" style="text-align:center; color:#999;">No logged matches found.</td></tr>`;
+    }
+    document.getElementById('historyTableBody').innerHTML = tableHtml;
 }
 
-// Simulates dynamic D6 rolling sequence
+// Simulates dynamic D6 rolling sequence for Hero 10! bonus
 function rollBonusDice() {
     if (isRolling) return;
     isRolling = true;
@@ -205,6 +245,41 @@ function rollBonusDice() {
         dice.innerText = activeBonusValue;
         isRolling = false;
     }, 500);
+}
+
+// Simulates Villainess dynamic D20 curse rolling sequence
+function rollCurseDice() {
+    if (isRolling || userRole !== "villainess") return;
+    isRolling = true;
+    
+    const vDice = document.getElementById('vDiceElement');
+    if (!vDice) return;
+    vDice.classList.add('rolling');
+    
+    let intervals = setInterval(() => {
+        vDice.innerText = Math.floor(Math.random() * 20) + 1;
+    }, 60);
+
+    setTimeout(async () => {
+        clearInterval(intervals);
+        vDice.classList.remove('rolling');
+        
+        let rolledCurse = Math.floor(Math.random() * 20) + 1;
+        vDice.innerText = rolledCurse;
+        isRolling = false;
+        
+        try {
+            let response = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "setCurse", curse: rolledCurse })
+            });
+            let data = await response.json();
+            updateUI(data);
+        } catch (err) {
+            console.error("Error setting curse value:", err);
+            vDice.innerText = "d20";
+        }
+    }, 600);
 }
 
 // API Call: Fetch baseline state
@@ -244,7 +319,6 @@ async function submitScore() {
 
     let response = await fetch(API_URL, {
         method: "POST",
-        // FIX: Passing BOTH the final calculation and the structural raw base value to backend
         body: JSON.stringify({ 
             action: "submitScore", 
             score: finalScoreToSend, 
@@ -253,6 +327,32 @@ async function submitScore() {
     });
     let data = await response.json();
     updateUI(data);
+}
+
+// API Call: Spent Card Network Synchronization Pipeline
+async function activateCard(cardId, effectType, value, name, desc) {
+    let systemPayload = { action: "playCard", cardId: cardId, effectType: effectType };
+
+    if (effectType === "HEAL_D10") {
+        let healRoll = Math.floor(Math.random() * 10) + 1;
+        systemPayload.calculatedRoll = healRoll;
+    }
+
+    try {
+        let response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify(systemPayload)
+        });
+        let data = await response.json();
+        updateUI(data);
+
+        // Quick UI adjustments on execution if matching local player attributes
+        if (effectType === "SETSCORE" && document.getElementById('scoreInput')) {
+            document.getElementById('scoreInput').value = value;
+        }
+    } catch (err) { 
+        console.error("Card activation tracking connection fault:", err); 
+    }
 }
 
 // API Call: Reset spreadsheet
@@ -268,65 +368,11 @@ async function confirmReset() {
     updateUI(data);
 }
 
-// API Call: Villainess uploads curse modifier
-async function submitCurse() {
-    if (userRole !== "villainess") return;
-    
-    let curseVal = parseInt(document.getElementById('curseInput').value);
-    if (isNaN(curseVal) || curseVal <= 0) return alert("Enter a valid curse modifier value above 0!");
-
-    let response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "setCurse", curse: curseVal })
-    });
-    let data = await response.json();
-    updateUI(data);
-}
-
-// Simulates Villainess dynamic D20 rolling sequence
-function rollCurseDice() {
-    if (isRolling || userRole !== "villainess") return;
-    isRolling = true;
-    
-    const vDice = document.getElementById('vDiceElement');
-    vDice.classList.add('rolling');
-    
-    // Cycle random D20 numbers rapidly during animation
-    let intervals = setInterval(() => {
-        vDice.innerText = Math.floor(Math.random() * 20) + 1;
-    }, 60);
-
-    setTimeout(async () => {
-        clearInterval(intervals);
-        vDice.classList.remove('rolling');
-        
-        // Calculate final D20 score outcome
-        let rolledCurse = Math.floor(Math.random() * 20) + 1;
-        vDice.innerText = rolledCurse;
-        isRolling = false;
-        
-        // Automatically commit the result immediately to Google Sheets
-        try {
-            let response = await fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "setCurse", curse: rolledCurse })
-            });
-            let data = await response.json();
-            updateUI(data);
-        } catch (err) {
-            console.error("Error setting curse value:", err);
-            alert("Network connection error saving curse. Try rolling again.");
-            vDice.innerText = "d20";
-        }
-    }, 600);
-}
-
 // Controls Modal view display bounds toggles
 function toggleHistoryModal(show) {
     const modal = document.getElementById('historyModal');
-    modal.style.display = show ? 'flex' : 'none';
+    if (modal) modal.style.display = show ? 'flex' : 'none';
 }
-
 
 // Execute core cycles
 checkPlayerRole();
