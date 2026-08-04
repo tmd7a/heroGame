@@ -376,5 +376,5 @@ function toggleHistoryModal(show) {
 
 // Execute core cycles
 checkPlayerRole();
-setInterval(fetchGameState, 1000);
+setInterval(fetchGameState, 2000);
 fetchGameState();
