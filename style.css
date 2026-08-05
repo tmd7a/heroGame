@@ -338,6 +338,21 @@ input[type="number"] {
 .card-hero .btn-play-card { background: #0062cc; }
 .card-villainess .btn-play-card { background: #c0392b; }
 
+/* In-Flight "Deploying..." Card State (UX indicator while awaiting server) */
+.game-card.card-pending {
+    opacity: 0.7;
+    animation: pending-pulse 0.9s ease-in-out infinite;
+}
+.pending-stamp {
+    color: #00d2d3 !important;
+    background: rgba(0,0,0,0.85) !important;
+}
+@keyframes pending-pulse {
+    0%   { box-shadow: 0 0 6px rgba(0, 210, 211, 0.3); }
+    50%  { box-shadow: 0 0 16px rgba(0, 210, 211, 0.8); }
+    100% { box-shadow: 0 0 6px rgba(0, 210, 211, 0.3); }
+}
+
 /* Spent / Silenced Card UI State Masks */
 .game-card.disabled {
     opacity: 0.4;
