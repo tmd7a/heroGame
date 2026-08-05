@@ -461,3 +461,52 @@ input[type="number"] {
 .win-theme.game-over-title { color: #2ecc71; }
 .loss-theme { border-color: #e74c3c; }
 .loss-theme .game-over-title { color: #e74c3c; }
+
+/* Shared Dice Component inside Play Field Arena */
+.arena-dice-wrapper {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+.arena-dice {
+    width: 44px;
+    height: 44px;
+    background: #ffd700;
+    color: #111;
+    font-weight: bold;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s, opacity 0.2s;
+}
+.arena-dice:active {
+    transform: scale(0.9);
+}
+.arena-dice.rolling {
+    animation: tumble 0.5s infinite linear;
+    background: #ff9f43;
+}
+.arena-dice.disabled {
+    background: #555;
+    color: #aaa;
+    border-color: #444;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+}
+.arena-dice-prompt {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #00d2d3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
