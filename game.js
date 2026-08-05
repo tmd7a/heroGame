@@ -125,7 +125,7 @@ function updateUI(data) {
     let currentHand = userRole === "hero" ? data.heroCards : data.villainessCards;
     
     // 1. Check if the current round has been Silenced by V_TRIG card
-    let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
+    isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
 
     // 2. ANTI-STACKING CHECK: Scan the active combat field cards
     // If ANY card in the arena belongs to the local player's role, we lock their whole hand!
