@@ -7,6 +7,11 @@ let activeBonusValue = 0;
 let isRolling = false;
 let userRole = "hero"; 
 
+// BUG FIX #3: track the shared arena state in memory (not just the DOM) so we
+// can guard against double-rolls that slip through in the ~2s gap between polls.
+let currentArenaCardId = "";
+let currentArenaRollValue = 0;
+
 function checkPlayerRole() {
     const urlParams = new URLSearchParams(window.location.search);
     const roleParam = urlParams.get('role');
@@ -72,6 +77,11 @@ function updateUI(data) {
         arenaRollValue = parseInt(parts[2]) || 0;
         arenaRollerRole = parts[3];
     }
+    // BUG FIX #3: keep the in-memory guard values in sync with the latest
+    // server state every time we poll, so rollSharedArenaDice can check
+    // against the real state instead of relying on DOM/CSS timing alone.
+    currentArenaCardId = arenaCardId;
+    currentArenaRollValue = arenaRollValue;
 
     // Check if the current round has been Silenced by V_TRIG card
     let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
@@ -200,8 +210,16 @@ function updateUI(data) {
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
+    // BUG FIX #4: the bonus box visibility/value now reflects the server-owned
+    // roll (data.bonusRoll) instead of only a locally-generated number, so a
+    // refreshed/second tab or a mid-round poll stays in sync with the sheet.
+    const serverBonusRoll = parseInt(data.bonusRoll) || 0;
     if (finalRawBaseScore === 10 && userRole === "hero") {
         document.getElementById('bonusBox').style.display = 'flex';
+        if (serverBonusRoll > 0) {
+            activeBonusValue = serverBonusRoll;
+            document.getElementById('diceElement').innerText = serverBonusRoll;
+        }
     } else {
         document.getElementById('bonusBox').style.display = 'none';
         document.getElementById('diceElement').innerText = "?";
@@ -246,6 +264,11 @@ function updateUI(data) {
 // Interactive Shared Arena Multi-Player Rolling Controller Machine
 function rollSharedArenaDice(cardId, effectType, maxSides, rollerRole) {
     if (isRolling || userRole !== rollerRole) return;
+    // BUG FIX #3: guard against double-rolling a ticket that was already
+    // resolved by the other player in the ~2s gap before our next poll
+    // refreshes the DOM/CSS disabled state.
+    if (cardId !== currentArenaCardId || currentArenaRollValue > 0) return;
+
     isRolling = true;
 
     const diceEl = document.getElementById('arenaDiceEl');
@@ -289,18 +312,29 @@ function rollSharedArenaDice(cardId, effectType, maxSides, rollerRole) {
     }, 600);
 }
 
-// Simulates dynamic D6 rolling sequence for Hero 10! bonus
-function rollBonusDice() {
+// BUG FIX #4: "10! Bonus" die is now server-authoritative. The client just
+// asks the server to roll and store the value (B13); it no longer invents
+// the number itself, so a modified client can't inflate its own bonus.
+async function rollBonusDice() {
     if (isRolling) return;
     isRolling = true;
     const dice = document.getElementById('diceElement');
     dice.classList.add('rolling');
     let intervals = setInterval(() => { dice.innerText = Math.floor(Math.random() * 6) + 1; }, 60);
-    setTimeout(() => {
+
+    setTimeout(async () => {
         clearInterval(intervals);
         dice.classList.remove('rolling');
-        activeBonusValue = Math.floor(Math.random() * 6) + 1;
-        dice.innerText = activeBonusValue;
+        try {
+            let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "rollBonusDice" }) });
+            let data = await response.json();
+            activeBonusValue = parseInt(data.bonusRoll) || 0;
+            dice.innerText = activeBonusValue > 0 ? activeBonusValue : "?";
+            updateUI(data);
+        } catch (err) {
+            console.error("Error rolling bonus dice:", err);
+            dice.innerText = "?";
+        }
         isRolling = false;
     }, 500);
 }
@@ -343,14 +377,18 @@ async function spinWheels() {
     let data = await response.json(); updateUI(data);
 }
 
+// BUG FIX #4: no longer computes/sends a combined total. The server derives
+// the verified final score itself from the base input plus its own stored
+// bonus roll (B13), so the client can't smuggle in an inflated bonus value.
 async function submitScore() {
     if (isRolling) return alert("Wait for the dice to finish rolling!");
     let baseScore = parseInt(document.getElementById('scoreInput').value);
     if (isNaN(baseScore) || baseScore <= 0) return alert("Enter a valid damage number");
-    let finalScoreToSend = baseScore + activeBonusValue;
     document.getElementById('scoreInput').value = ""; 
-    let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "submitScore", score: finalScoreToSend, baseInputScore: baseScore }) });
-    let data = await response.json(); updateUI(data);
+    let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "submitScore", baseInputScore: baseScore }) });
+    let data = await response.json();
+    activeBonusValue = 0;
+    updateUI(data);
 }
 
 async function activateCard(cardId, effectType, value, name, desc) {
