@@ -12,6 +12,14 @@ let userRole = "hero";
 let currentArenaCardId = "";
 let currentArenaRollValue = 0;
 
+// UX: last confirmed server state, so we can force a re-render (e.g. to show
+// a pending indicator) without needing a fresh network response.
+let lastKnownData = null;
+
+// UX: the card ID currently awaiting server confirmation, so we can show a
+// "Deploying..." state on just that card instead of guessing at outcomes.
+let pendingCardId = null;
+
 function checkPlayerRole() {
     const urlParams = new URLSearchParams(window.location.search);
     const roleParam = urlParams.get('role');
@@ -30,6 +38,10 @@ function checkPlayerRole() {
 }
 
 function updateUI(data) {
+    // UX: remember the last real state so we can force a re-render (e.g. to
+    // show/clear a pending card indicator) without a fresh network call.
+    lastKnownData = data;
+
     const remHp = parseInt(data.remainingHp);
     const startHp = parseInt(data.startingHp);
     const maxRounds = parseInt(data.maxRounds) || 15; 
@@ -150,13 +162,17 @@ function updateUI(data) {
     if (currentHand && currentHand.length > 0) {
         currentHand.forEach(card => {
             let roleClass = card.role === "hero" || userRole === "hero" ? "card-hero" : "card-villainess";
+
+            // UX: is this the exact card currently awaiting server confirmation?
+            let isPending = (card.id === pendingCardId);
             
-            // A card is disabled if it's spent, locked by round, if the hero is silenced, OR if the player already played a card this round!
-            let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced) || roleHasPlayedThisRound;
-            let cardClass = `game-card ${roleClass}` + (isDisabled ? " disabled" : "");
+            // A card is disabled if it's spent, locked by round, if the hero is silenced, if the player already played a card this round, OR if it's mid-flight!
+            let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced) || roleHasPlayedThisRound || isPending;
+            let cardClass = `game-card ${roleClass}` + (isDisabled ? " disabled" : "") + (isPending ? " card-pending" : "");
             
             let stampLabel = "";
-            if (card.spent) stampLabel = `<div class="card-stamp-locked">SPENT</div>`;
+            if (isPending) stampLabel = `<div class="card-stamp-locked pending-stamp">⏳ DEPLOYING...</div>`;
+            else if (card.spent) stampLabel = `<div class="card-stamp-locked">SPENT</div>`;
             else if (card.lockedByRound) stampLabel = `<div class="card-stamp-locked">LOCKED (RND)</div>`;
             else if (userRole === "hero" && isSilenced) stampLabel = `<div class="card-stamp-locked">SILENCED</div>`;
             else if (roleHasPlayedThisRound && !card.spent) stampLabel = `<div class="card-stamp-locked">1 CARD MAX</div>`; // Dynamic feedback text
@@ -392,6 +408,11 @@ async function submitScore() {
 }
 
 async function activateCard(cardId, effectType, value, name, desc) {
+    // UX: mark this exact card as "in flight" and force an immediate re-render
+    // so the player sees a "Deploying..." state right away.
+    pendingCardId = cardId;
+    if (lastKnownData) updateUI(lastKnownData);
+
     let systemPayload = { action: "playCard", cardId: cardId, effectType: effectType };
     
     // HEAL_D10 card structure initializes the rolling ticket directly inside the arena
@@ -403,19 +424,29 @@ async function activateCard(cardId, effectType, value, name, desc) {
             let initStr = `${cardId}|HEAL_D10|0|hero`;
             let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "submitLiveDiceArenaRoll", updatedArenaString: initStr }) });
             let data = await response.json();
+            pendingCardId = null;
             updateUI(data);
             return;
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            pendingCardId = null;
+            if (lastKnownData) updateUI(lastKnownData);
+        }
     }
 
     try {
         let response = await fetch(API_URL, { method: "POST", body: JSON.stringify(systemPayload) });
         let data = await response.json();
+        pendingCardId = null;
         updateUI(data);
         if (effectType === "SETSCORE" && document.getElementById('scoreInput')) {
             document.getElementById('scoreInput').value = value;
         }
-    } catch (err) { console.error("Card activation tracking connection fault:", err); }
+    } catch (err) {
+        console.error("Card activation tracking connection fault:", err);
+        pendingCardId = null;
+        if (lastKnownData) updateUI(lastKnownData);
+    }
 }
 
 // API Call: Reset spreadsheet
