@@ -119,21 +119,37 @@ function updateUI(data) {
     if (combatZoneEl) combatZoneEl.innerHTML = fieldHtml;
 
     // ==========================================
-    // VISUAL RENDER BLOCK: PLAYER PRIVATE HAND
+    // VISUAL RENDER BLOCK: PLAYER PRIVATE HAND (UPDATED FOR ANTI-STACKING)
     // ==========================================
     let handHtml = "";
     let currentHand = userRole === "hero" ? data.heroCards : data.villainessCards;
     
+    // 1. Check if the current round has been Silenced by V_TRIG card
+    let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
+
+    // 2. ANTI-STACKING CHECK: Scan the active combat field cards
+    // If ANY card in the arena belongs to the local player's role, we lock their whole hand!
+    let roleHasPlayedThisRound = false;
+    if (data.activeFieldCards) {
+        roleHasPlayedThisRound = data.activeFieldCards.some(card => {
+            let cardRole = card.id.indexOf("H_") === 0 ? "hero" : "villainess";
+            return cardRole === userRole;
+        });
+    }
+
     if (currentHand && currentHand.length > 0) {
         currentHand.forEach(card => {
             let roleClass = card.role === "hero" || userRole === "hero" ? "card-hero" : "card-villainess";
-            let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced);
+            
+            // A card is disabled if it's spent, locked by round, if the hero is silenced, OR if the player already played a card this round!
+            let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced) || roleHasPlayedThisRound;
             let cardClass = `game-card ${roleClass}` + (isDisabled ? " disabled" : "");
             
             let stampLabel = "";
             if (card.spent) stampLabel = `<div class="card-stamp-locked">SPENT</div>`;
             else if (card.lockedByRound) stampLabel = `<div class="card-stamp-locked">LOCKED (RND)</div>`;
             else if (userRole === "hero" && isSilenced) stampLabel = `<div class="card-stamp-locked">SILENCED</div>`;
+            else if (roleHasPlayedThisRound && !card.spent) stampLabel = `<div class="card-stamp-locked">1 CARD MAX</div>`; // Dynamic feedback text
 
             handHtml += `
                 <div class="${cardClass}">
