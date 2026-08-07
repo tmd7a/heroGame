@@ -92,6 +92,11 @@ input[type="number"] {
 .dice.rolling { 
     animation: tumble 0.5s ease-out; 
 }
+.dice.locked {
+    background: #ffd700;
+    border-color: #b8960c;
+    cursor: default;
+}
 .bonus-label { 
     font-size: 0.8rem; 
     color: #ffd700; 
