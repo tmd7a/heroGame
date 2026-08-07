@@ -7,10 +7,13 @@ let activeBonusValue = 0;
 let isRolling = false;
 let userRole = "hero"; 
 
-// BUG FIX #3: track the shared arena state in memory (not just the DOM) so we
-// can guard against double-rolls that slip through in the ~2s gap between polls.
-let currentArenaCardId = "";
-let currentArenaRollValue = 0;
+// NEW: two independent dice ticket trackers (hero's and villainess's), kept
+// in memory so rollSharedArenaDice can guard against double-rolls that slip
+// through in the ~2s gap between polls. Each role can only play one card per
+// round, so at most one ticket per role is ever active — no more than this
+// is needed even when both BLOCK_D6 and ATTACK_D6 are in play at once.
+let currentHeroTicket = null;
+let currentVillainessTicket = null;
 
 // UX: last confirmed server state, so we can force a re-render (e.g. to show
 // a pending indicator) without needing a fresh network response.
@@ -19,6 +22,15 @@ let lastKnownData = null;
 // UX: the card ID currently awaiting server confirmation, so we can show a
 // "Deploying..." state on just that card instead of guessing at outcomes.
 let pendingCardId = null;
+
+// GENERIC DICE-EFFECT HELPER (mirrors the server-side version in appscript.txt):
+// any effectType matching ACTION_D<number> is recognized as needing a dice
+// roll, with side-count parsed from the name — no hardcoded effect-type list.
+function parseDiceEffect(effectType) {
+    let match = /^([A-Z]+)_D(\d+)$/.exec(String(effectType || ""));
+    if (!match) return null;
+    return { actionPrefix: match[1], diceSides: parseInt(match[2]) };
+}
 
 function checkPlayerRole() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -80,20 +92,22 @@ function updateUI(data) {
         if (streakCard) streakCard.style.borderColor = "#444";
     }
 
-    // Check Shared Network Dice Arena String Parameters (Format: cardId|effectType|rollValue|rollerRole)
-    let arenaCardId = "", arenaEffectType = "", arenaRollValue = 0, arenaRollerRole = "";
-    if (data.diceArenaState) {
-        let parts = data.diceArenaState.split("|");
-        arenaCardId = parts[0];
-        arenaEffectType = parts[1];
-        arenaRollValue = parseInt(parts[2]) || 0;
-        arenaRollerRole = parts[3];
+    // NEW: parse BOTH shared dice tickets — hero's (BLOCK_D6/HEAL_D10) and
+    // villainess's (ATTACK_D6) — since both can be active in the same round
+    // now that each role gets its own cell instead of sharing one.
+    // Format for each: cardId|effectType|rollValue|rollerRole
+    function parseArenaTicket(str) {
+        if (!str) return null;
+        let parts = str.split("|");
+        return { cardId: parts[0], effectType: parts[1], rollValue: parseInt(parts[2]) || 0, rollerRole: parts[3] };
     }
-    // BUG FIX #3: keep the in-memory guard values in sync with the latest
-    // server state every time we poll, so rollSharedArenaDice can check
-    // against the real state instead of relying on DOM/CSS timing alone.
-    currentArenaCardId = arenaCardId;
-    currentArenaRollValue = arenaRollValue;
+    let heroTicket = parseArenaTicket(data.heroDiceState);
+    let villainessTicket = parseArenaTicket(data.villainessDiceState);
+    // Keep the in-memory guards in sync with the latest server state every
+    // time we poll, so rollSharedArenaDice can check against real state
+    // instead of relying on DOM/CSS timing alone.
+    currentHeroTicket = heroTicket;
+    currentVillainessTicket = villainessTicket;
 
     // Check if the current round has been Silenced by V_TRIG card
     let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
@@ -107,19 +121,31 @@ function updateUI(data) {
             let roleClass = card.role === "hero" ? "card-hero" : "card-villainess";
             let diceElementHtml = "";
 
-            // Inject an interactive shared dice if this card owns the active rolling ticket
-            if (card.id === arenaCardId && (card.effectType === "BLOCK_D6" || card.effectType === "ATTACK_D6" || card.effectType === "HEAL_D10")) {
-                let maxSides = card.effectType === "HEAL_D10" ? 10 : 6;
-                let displayVal = arenaRollValue > 0 ? arenaRollValue : `d${maxSides}`;
-                let isMyTurnToRoll = (userRole === arenaRollerRole) && (arenaRollValue === 0) && !isRolling;
+            // A card's roll ticket is whichever one (hero's or villainess's)
+            // has a matching cardId — both can be present at once now, since
+            // each role can have its own card+ticket active simultaneously.
+            let matchingTicket = null;
+            if (heroTicket && heroTicket.cardId === card.id) matchingTicket = heroTicket;
+            else if (villainessTicket && villainessTicket.cardId === card.id) matchingTicket = villainessTicket;
+
+            // GENERIC FIX: any effectType matching ACTION_D<number> gets a
+            // dice widget — no more hardcoded BLOCK_D6/ATTACK_D6/HEAL_D10
+            // list. Side-count is parsed straight from the name.
+            let diceEffect = matchingTicket ? parseDiceEffect(matchingTicket.effectType) : null;
+            if (matchingTicket && diceEffect) {
+                let maxSides = diceEffect.diceSides;
+                let displayVal = matchingTicket.rollValue > 0 ? matchingTicket.rollValue : `d${maxSides}`;
+                let isMyTurnToRoll = (userRole === matchingTicket.rollerRole) && (matchingTicket.rollValue === 0) && !isRolling;
                 
                 let disabledClass = isMyTurnToRoll ? "" : " disabled";
-                let dynamicPrompt = arenaRollValue > 0 ? "ROLL CAST" : (userRole === arenaRollerRole ? "YOUR TURN TO ROLL" : "WAITING FOR OPPONENT");
+                let dynamicPrompt = matchingTicket.rollValue > 0 ? "ROLL CAST" : (userRole === matchingTicket.rollerRole ? "YOUR TURN TO ROLL" : "WAITING FOR OPPONENT");
 
+                // Unique per-card element id: two dice widgets can now render
+                // at once (one for the hero's card, one for the villainess's)
                 diceElementHtml = `
                     <div class="arena-dice-wrapper">
                         <div class="arena-dice-prompt">${dynamicPrompt}</div>
-                        <div id="arenaDiceEl" class="arena-dice${disabledClass}" onclick="rollSharedArenaDice('${card.id}', '${card.effectType}', ${maxSides}, '${arenaRollerRole}')">
+                        <div id="arenaDice_${card.id}" class="arena-dice${disabledClass}" onclick="rollSharedArenaDice('${card.id}', '${matchingTicket.effectType}', ${maxSides}, '${matchingTicket.rollerRole}')">
                             ${displayVal}
                         </div>
                     </div>
@@ -226,20 +252,42 @@ function updateUI(data) {
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
-    // BUG FIX #4: the bonus box visibility/value now reflects the server-owned
-    // roll (data.bonusRoll) instead of only a locally-generated number, so a
-    // refreshed/second tab or a mid-round poll stays in sync with the sheet.
+    // UX: show the "10! Bonus" die to BOTH roles now (previously hero-only),
+    // and disable clicking once it's been rolled so it can't be re-rolled.
     const serverBonusRoll = parseInt(data.bonusRoll) || 0;
-    if (finalRawBaseScore === 10 && userRole === "hero") {
+    const bonusDiceEl = document.getElementById('diceElement');
+    if (finalRawBaseScore === 10) {
         document.getElementById('bonusBox').style.display = 'flex';
         if (serverBonusRoll > 0) {
             activeBonusValue = serverBonusRoll;
-            document.getElementById('diceElement').innerText = serverBonusRoll;
+            bonusDiceEl.innerText = serverBonusRoll;
+            bonusDiceEl.classList.add('locked');
+        } else {
+            activeBonusValue = 0;
+            bonusDiceEl.innerText = "?";
+            bonusDiceEl.classList.remove('locked');
         }
+        // Only the hero can actually roll it; villainess gets a read-only view
+        const canRollNow = (userRole === "hero" && serverBonusRoll === 0);
+        bonusDiceEl.style.pointerEvents = canRollNow ? "auto" : "none";
+        bonusDiceEl.style.cursor = canRollNow ? "pointer" : "default";
     } else {
         document.getElementById('bonusBox').style.display = 'none';
-        document.getElementById('diceElement').innerText = "?";
+        bonusDiceEl.innerText = "?";
+        bonusDiceEl.classList.remove('locked');
         activeBonusValue = 0;
+    }
+
+    // NEW: block score submission while a BLOCK_D6/ATTACK_D6 card is in play
+    // but hasn't been rolled yet — the final score depends on that roll, so
+    // submitting early would lock in an incomplete total.
+    const rollIsPending = isDiceRollPending(data);
+    const submitBtn = document.getElementById('submitScoreBtn');
+    const scoreInputEl = document.getElementById('scoreInput');
+    if (submitBtn && scoreInputEl) {
+        submitBtn.disabled = rollIsPending;
+        scoreInputEl.disabled = rollIsPending;
+        submitBtn.innerText = rollIsPending ? "Waiting for dice roll..." : "Submit Attack";
     }
 
     const overlay = document.getElementById('gameOverOverlay');
@@ -277,17 +325,36 @@ function updateUI(data) {
     document.getElementById('historyTableBody').innerHTML = tableHtml;
 }
 
+// GENERIC FIX: true if ANY dice ticket (hero's or villainess's) exists but
+// hasn't been rolled yet — not just BLOCK_D6/ATTACK_D6 by name. A ticket only
+// ever gets created for effects that matched ACTION_D<number> in the first
+// place, so its mere existence with rollValue still 0 is enough to know a
+// roll is outstanding, regardless of what that card's effect actually does.
+// Shared by updateUI (to gate the submit button) and submitScore (hard guard).
+function isDiceRollPending(data) {
+    function parseTicket(str) {
+        if (!str) return null;
+        let parts = str.split("|");
+        return { rollValue: parseInt(parts[2]) || 0 };
+    }
+    let h = parseTicket(data.heroDiceState);
+    let v = parseTicket(data.villainessDiceState);
+    return (h && h.rollValue === 0) || (v && v.rollValue === 0);
+}
+
 // Interactive Shared Arena Multi-Player Rolling Controller Machine
 function rollSharedArenaDice(cardId, effectType, maxSides, rollerRole) {
     if (isRolling || userRole !== rollerRole) return;
     // BUG FIX #3: guard against double-rolling a ticket that was already
     // resolved by the other player in the ~2s gap before our next poll
-    // refreshes the DOM/CSS disabled state.
-    if (cardId !== currentArenaCardId || currentArenaRollValue > 0) return;
+    // refreshes the DOM/CSS disabled state. Check whichever ticket belongs
+    // to this roller (hero's or villainess's — both can be active at once).
+    let relevantTicket = (rollerRole === "villainess") ? currentVillainessTicket : currentHeroTicket;
+    if (!relevantTicket || relevantTicket.cardId !== cardId || relevantTicket.rollValue > 0) return;
 
     isRolling = true;
 
-    const diceEl = document.getElementById('arenaDiceEl');
+    const diceEl = document.getElementById('arenaDice_' + cardId);
     if (diceEl) diceEl.classList.add('rolling');
 
     let intervals = setInterval(() => {
@@ -312,8 +379,11 @@ function rollSharedArenaDice(cardId, effectType, maxSides, rollerRole) {
                 body: JSON.stringify({ action: "submitLiveDiceArenaRoll", updatedArenaString: updatedArenaString })
             });
 
-            // 2. If it's the custom HEAL_D10 card, run its calculation routing function
-            if (effectType === "HEAL_D10") {
+            // GENERIC FIX: route to the healing accumulator based on the
+            // action prefix ("HEAL") rather than the exact string "HEAL_D10",
+            // so a future HEAL_D8 or similar would work without a code change.
+            let effect = parseDiceEffect(effectType);
+            if (effect && effect.actionPrefix === "HEAL") {
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "applyHealCard", rollValue: finalRoll })
@@ -333,6 +403,11 @@ function rollSharedArenaDice(cardId, effectType, maxSides, rollerRole) {
 // the number itself, so a modified client can't inflate its own bonus.
 async function rollBonusDice() {
     if (isRolling) return;
+    // NEW: only the hero rolls this die (villainess now sees it, read-only),
+    // and it can't be rolled again once a value is already recorded.
+    if (userRole !== "hero") return;
+    if (lastKnownData && parseInt(lastKnownData.bonusRoll) > 0) return;
+
     isRolling = true;
     const dice = document.getElementById('diceElement');
     dice.classList.add('rolling');
@@ -398,6 +473,12 @@ async function spinWheels() {
 // bonus roll (B13), so the client can't smuggle in an inflated bonus value.
 async function submitScore() {
     if (isRolling) return alert("Wait for the dice to finish rolling!");
+    // NEW: guard against submitting while a Block/Attack card is unrolled
+    // (the button is already disabled for this, but this covers a stray
+    // click that lands in the gap before the next poll updates the UI).
+    if (lastKnownData && isDiceRollPending(lastKnownData)) {
+        return alert("Resolve the active Block/Attack dice roll before submitting your score!");
+    }
     let baseScore = parseInt(document.getElementById('scoreInput').value);
     if (isNaN(baseScore) || baseScore <= 0) return alert("Enter a valid damage number");
     document.getElementById('scoreInput').value = ""; 
@@ -413,29 +494,12 @@ async function activateCard(cardId, effectType, value, name, desc) {
     pendingCardId = cardId;
     if (lastKnownData) updateUI(lastKnownData);
 
-    let systemPayload = { action: "playCard", cardId: cardId, effectType: effectType };
-    
-    // HEAL_D10 card structure initializes the rolling ticket directly inside the arena
-    if (effectType === "HEAL_D10") {
-        systemPayload.effectType = "HEAL_D10";
-        try {
-            await fetch(API_URL, { method: "POST", body: JSON.stringify(systemPayload) });
-            // Direct state assignment format parameters: cardId|effectType|0|rollerRole
-            let initStr = `${cardId}|HEAL_D10|0|hero`;
-            let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "submitLiveDiceArenaRoll", updatedArenaString: initStr }) });
-            let data = await response.json();
-            pendingCardId = null;
-            updateUI(data);
-            return;
-        } catch (e) {
-            console.error(e);
-            pendingCardId = null;
-            if (lastKnownData) updateUI(lastKnownData);
-        }
-    }
-
+    // GENERIC FIX: playCard on the server now creates a dice ticket for ANY
+    // effectType matching ACTION_D<number> — including HEAL_D10 — so the old
+    // special-cased branch that manually bootstrapped a HEAL_D10 ticket here
+    // is no longer needed. Every card, dice or not, just plays the same way.
     try {
-        let response = await fetch(API_URL, { method: "POST", body: JSON.stringify(systemPayload) });
+        let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "playCard", cardId: cardId, effectType: effectType }) });
         let data = await response.json();
         pendingCardId = null;
         updateUI(data);
