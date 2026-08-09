@@ -232,8 +232,11 @@ function updateUI(data) {
     for (let i = 0; i < maxRounds; i++) {
         let dmg = data.scores[i];
         let baseDmg = data.baseScores ? data.baseScores[i] : 0;
+        let bonusDmg = data.bonusScores ? data.bonusScores[i] : 0;
+        let blockDmg = data.blockScores ? data.blockScores[i] : 0;
         let cellClass = "round-cell";
         let displayDmg = "-";
+        let breakdownHtml = "";
 
         if (dmg !== undefined && dmg !== "" && dmg !== null) {
             let parsedDmg = parseInt(dmg);
@@ -242,13 +245,27 @@ function updateUI(data) {
                 displayDmg = parsedDmg;
                 finalRawBaseScore = parseInt(baseDmg) || 0;
                 filledCount++;
+
+                // NEW: show the components that make up the final number —
+                // Base + Bonus - Block = Final — so the math is visible at a
+                // glance instead of just the total.
+                let parsedBase = parseInt(baseDmg) || 0;
+                let parsedBonus = parseInt(bonusDmg) || 0;
+                let parsedBlock = parseInt(blockDmg) || 0;
+                breakdownHtml = `
+                    <div class="round-breakdown">
+                        <span class="breakdown-item breakdown-base" title="Base damage">⚔️${parsedBase}</span>
+                        <span class="breakdown-item breakdown-bonus" title="Bonus damage (10! bonus + Attack roll)">✨${parsedBonus}</span>
+                        <span class="breakdown-item breakdown-block" title="Blocked">🛡️${parsedBlock}</span>
+                    </div>
+                `;
             } else if (!nextEmptyFound) {
                 cellClass += " active"; nextEmptyFound = true;
             }
         } else if (!nextEmptyFound) {
             cellClass += " active"; nextEmptyFound = true;
         }
-        gridHtml += `<div class="${cellClass}"><div class="round-num">Rnd ${i + 1}</div><div class="round-dmg">${displayDmg}</div></div>`;
+        gridHtml += `<div class="${cellClass}"><div class="round-num">Rnd ${i + 1}</div><div class="round-dmg">${displayDmg}</div>${breakdownHtml}</div>`;
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
