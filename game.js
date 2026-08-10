@@ -109,8 +109,8 @@ function updateUI(data) {
     currentHeroTicket = heroTicket;
     currentVillainessTicket = villainessTicket;
 
-    // Check if the current round has been Silenced by V_TRIG card
-    let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
+    // Check if the current round has been Silenced by a card with the SILENCE effect
+    let isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.effectType === "SILENCE") : false;
 
     // ==========================================
     // VISUAL RENDER BLOCK: THE ACTIVE COMBAT FIELD (WITH INTERACTIVE ROLLS)
@@ -172,8 +172,8 @@ function updateUI(data) {
     let handHtml = "";
     let currentHand = userRole === "hero" ? data.heroCards : data.villainessCards;
     
-    // 1. Check if the current round has been Silenced by V_TRIG card
-    isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.id === "V_TRIG") : false;
+    // 1. Check if the current round has been Silenced by a card with the SILENCE effect
+    isSilenced = data.activeFieldCards ? data.activeFieldCards.some(c => c.effectType === "SILENCE") : false;
 
     // 2. ANTI-STACKING CHECK: Scan the active combat field cards
     // If ANY card in the arena belongs to the local player's role, we lock their whole hand!
