@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero's Trial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Links your external style sheet -->
+    <link rel="stylesheet" href="style2.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- ============ HEADER ============ -->
+        <header class="app-header">
+            <div class="header-slot header-slot-left">
+                <div id="roleIndicator" class="role-banner hero-role">Role: Hero (Player 1)</div>
+            </div>
+
+            <h1 class="app-title">Hero<span class="app-title-accent">'s</span> Trial</h1>
+
+            <div class="header-slot header-slot-right">
+                <div class="mini-stats">
+                    <span class="mini-stat mini-stat-hero" title="Hero Lifetime Wins">⚔️ <span id="heroWinCount">0</span></span>
+                    <span class="mini-stat mini-stat-villain" title="Villainess Lifetime Wins">🩸 <span id="villainWinCount">0</span></span>
+                    <span class="mini-stat mini-stat-streak" id="streakCard" title="Current Streak"><span id="streakDisplay">No Active Streak</span></span>
+                </div>
+                <button class="icon-btn" onclick="toggleHistoryModal(true)" title="View Match History">📜</button>
+                <button id="resetBtn" class="icon-btn icon-btn-danger hero-control" onclick="confirmReset()" title="Reset Entire Game">🔄</button>
+            </div>
+        </header>
+
+        <!-- ============ MAIN DASHBOARD ============ -->
+        <main class="app-main">
+
+            <!-- ---------- LEFT RAIL ---------- -->
+            <aside class="rail rail-left">
+
+                <section class="panel panel-vitality">
+                    <h2 class="panel-title">Hero's Vitality</h2>
+
+                    <div class="hp-dial-wrap">
+                        <svg class="hp-dial" viewBox="0 0 200 200" aria-hidden="true">
+                            <circle class="hp-dial-track" cx="100" cy="100" r="80"></circle>
+                            <circle id="hpDialArc" class="hp-dial-arc dial-safe" cx="100" cy="100" r="80"></circle>
+                        </svg>
+                        <div class="hp-dial-readout">
+                            <span id="remHp">--</span><span class="hp-dial-divider">/</span><span id="startHp">--</span>
+                        </div>
+                        <div class="hp-dial-label">Remaining HP</div>
+                    </div>
+
+                    <div id="curseDisplayBox" class="curse-badge">
+                        <span class="curse-icon">🔮</span> Curse Modifier: +<span id="curseValue">0</span>
+                    </div>
+
+                    <!-- Villainess D20 Curse Setup Control Area -->
+                    <div id="villainSetup" class="villain-setup-container" style="display: none;">
+                        <div class="curse-label">Roll for Curse:</div>
+                        <div id="vDiceElement" class="v-dice" onclick="rollCurseDice()">d20</div>
+                    </div>
+                </section>
+
+                <section class="panel panel-spinners">
+                    <h2 class="panel-title">Scene Spinners</h2>
+                    <div class="spinner-row">
+                        <span class="spinner-key">Content Category</span>
+                        <strong id="spin1Val" class="spinner-value">None</strong>
+                    </div>
+                    <div class="spinner-row">
+                        <span class="spinner-key">Parameters</span>
+                        <strong id="spin2Val" class="spinner-value">None</strong>
+                    </div>
+                    <button class="btn btn-secondary full-width hero-control" onclick="spinWheels()">🎡 Spin Both Wheels</button>
+                </section>
+
+            </aside>
+
+            <!-- ---------- CENTER STAGE ---------- -->
+            <section class="stage-center">
+
+                <section class="panel panel-rounds">
+                    <h2 class="panel-title">Match Progress</h2>
+                    <div id="roundGrid" class="round-grid"></div>
+                </section>
+
+                <section class="panel panel-arena">
+                    <h2 class="panel-title">Cards In Play This Round</h2>
+                    <div id="activeCombatZone" class="active-cards-grid">
+                        <div class="field-placeholder">No cards activated yet for this round...</div>
+                    </div>
+                </section>
+
+                <section class="panel panel-attack hero-control">
+                    <h2 class="panel-title">Submit Attack Score</h2>
+                    <div class="attack-area">
+                        <input type="number" id="scoreInput" placeholder="Base damage">
+
+                        <!-- Dynamic Bonus Dice Box -->
+                        <div id="bonusBox" class="bonus-container">
+                            <div class="bonus-label">10! Bonus:</div>
+                            <div id="diceElement" class="dice" onclick="rollBonusDice()">?</div>
+                        </div>
+
+                        <button id="submitScoreBtn" class="btn btn-primary" onclick="submitScore()">Submit Attack</button>
+                    </div>
+                </section>
+
+            </section>
+
+            <!-- ---------- RIGHT RAIL ---------- -->
+            <aside class="rail rail-right">
+                <section class="panel panel-hand">
+                    <h2 class="panel-title">Your Hand</h2>
+                    <div id="playerHandGrid" class="cards-grid"></div>
+                </section>
+            </aside>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification Stack -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- Game Over Screen Overlay Element Structure -->
+    <div id="gameOverOverlay" class="game-over-overlay">
+        <div id="gameOverBox" class="game-over-box">
+            <div id="gameOverTitle" class="game-over-title">Victory!</div>
+            <div id="gameOverMsg" class="game-over-msg">Message goes here.</div>
+            <button id="overlayResetBtn" class="btn btn-danger hero-control" onclick="confirmReset()">🔄 Clear & Start New Match</button>
+        </div>
+    </div>
+
+    <!-- History Logs Modal Popup Overlay Structure -->
+    <div id="historyModal" class="history-modal-overlay">
+        <div class="history-modal-content">
+            <div class="history-modal-header">
+                <h2>Match History (Newest First)</h2>
+                <span class="close-modal-btn" onclick="toggleHistoryModal(false)">&times;</span>
+            </div>
+            <div class="history-table-container">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Winner</th>
+                            <th>Category 1</th>
+                            <th>Category 2</th>
+                            <th>Start HP</th>
+                            <th>Final HP</th>
+                            <th>Rounds</th>
+                            <th>Curse</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Instantiated dynamically inside javascript loops -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links your external JavaScript game engine -->
+    <script src="game2.js"></script>
+</body>
+</html>
