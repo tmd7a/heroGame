@@ -341,8 +341,8 @@ function updateUI(data) {
             bonusDiceEl.classList.remove('locked');
             if (bonusStatusText) {
                 bonusStatusText.innerHTML = (userRole === "hero")
-                    ? `🎲 You rolled a 10 last round — roll your bonus die below!`
-                    : `🎲 The Hero rolled a 10 last round — a bonus roll is pending...`;
+                    ? `🎲 Critical! Roll the bonus damage die.`
+                    : `🎲 Critical hit '10' last round — a bonus roll is pending...`;
             }
         }
         // Only the hero can actually roll it; villainess gets a read-only view
