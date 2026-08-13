@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Links your external style sheet -->
-    <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-shell">
@@ -28,6 +28,7 @@
                     <span class="mini-stat mini-stat-streak" id="streakCard" title="Current Streak"><span id="streakDisplay">No Active Streak</span></span>
                 </div>
                 <button class="icon-btn" onclick="toggleHistoryModal(true)" title="View Match History">📜</button>
+                <button class="icon-btn" onclick="togglePlayedCardsModal(true)" title="View Played Cards">🃏</button>
                 <button id="resetBtn" class="icon-btn icon-btn-danger hero-control" onclick="confirmReset()" title="Reset Entire Game">🔄</button>
             </div>
         </header>
@@ -68,18 +69,36 @@
                     <div class="spinner-row">
                         <span class="spinner-key">Content Category</span>
                         <strong id="spin1Val" class="spinner-value">None</strong>
+                        <button class="btn-spin-single hero-control" onclick="spinSingle(1)" title="Respin Content Category">🎲</button>
                     </div>
                     <div class="spinner-row">
                         <span class="spinner-key">Parameters</span>
                         <strong id="spin2Val" class="spinner-value">None</strong>
+                        <button class="btn-spin-single hero-control" onclick="spinSingle(2)" title="Respin Parameters">🎲</button>
                     </div>
-                    <button class="btn btn-secondary full-width hero-control" onclick="spinWheels()">🎡 Spin Both Wheels</button>
+                    <div class="spinner-row">
+                        <span class="spinner-key">Limit Restrictions</span>
+                        <strong id="spin3Val" class="spinner-value">None</strong>
+                        <button class="btn-spin-single hero-control" onclick="spinSingle(3)" title="Respin Limit Restrictions">🎲</button>
+                    </div>
+                    <button class="btn btn-secondary full-width hero-control" onclick="spinWheels()">🎡 Spin All Three</button>
                 </section>
 
             </aside>
 
             <!-- ---------- CENTER STAGE ---------- -->
             <section class="stage-center">
+
+                <!-- Shared (NOT hero-control) so both roles see pending/resolved bonus state -->
+                <section class="panel panel-bonus-status" id="bonusStatusPanel" style="display:none;">
+                    <div class="bonus-status-row">
+                        <span id="bonusStatusText" class="bonus-status-text">Bonus roll pending...</span>
+                        <div id="bonusBox" class="bonus-container">
+                            <div class="bonus-label">Bonus Roll:</div>
+                            <div id="diceElement" class="dice" onclick="rollBonusDice()">?</div>
+                        </div>
+                    </div>
+                </section>
 
                 <section class="panel panel-rounds">
                     <h2 class="panel-title">Match Progress</h2>
@@ -97,18 +116,12 @@
                     <h2 class="panel-title">Submit Attack Score</h2>
                     <div class="attack-area">
                         <input type="number" id="scoreInput" placeholder="Base damage">
-
-                        <!-- Dynamic Bonus Dice Box -->
-                        <div id="bonusBox" class="bonus-container">
-                            <div class="bonus-label">10! Bonus:</div>
-                            <div id="diceElement" class="dice" onclick="rollBonusDice()">?</div>
-                        </div>
-
                         <button id="submitScoreBtn" class="btn btn-primary" onclick="submitScore()">Submit Attack</button>
                     </div>
                 </section>
 
             </section>
+
 
             <!-- ---------- RIGHT RAIL ---------- -->
             <aside class="rail rail-right">
@@ -162,7 +175,24 @@
         </div>
     </div>
 
+    <!-- Played Cards Carousel Modal -->
+    <div id="playedCardsModal" class="history-modal-overlay">
+        <div class="history-modal-content playedcards-modal-content">
+            <div class="history-modal-header">
+                <h2>🃏 Played Cards</h2>
+                <span class="close-modal-btn" onclick="togglePlayedCardsModal(false)">&times;</span>
+            </div>
+            <div class="playedcards-carousel">
+                <button class="carousel-nav" onclick="carouselStep(-1)" title="Previous (←)">‹</button>
+                <div id="playedCardsStage" class="playedcards-stage"></div>
+                <button class="carousel-nav" onclick="carouselStep(1)" title="Next (→)">›</button>
+            </div>
+            <div id="playedCardsPosition" class="playedcards-position">0 / 0</div>
+            <div id="playedCardsFilmstrip" class="playedcards-filmstrip"></div>
+        </div>
+    </div>
+
     <!-- Links your external JavaScript game engine -->
-    <script src="game2.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
