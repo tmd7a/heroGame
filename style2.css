@@ -150,7 +150,11 @@ button {
     .app-main { overflow: hidden; height: 100%; }
     .rail, .stage-center { overflow-y: auto; height: 100%; padding-right: 2px; }
     .panel-hand, .panel-arena { flex: 1; min-height: 0; }
-    .panel-hand .cards-grid, .panel-arena .active-cards-grid { overflow-y: auto; }
+    .panel-arena .active-cards-grid { overflow-y: auto; }
+    /* NEW: proper flex column so the "View Played Cards" button stays pinned
+       at the bottom while just the hand itself scrolls internally. */
+    .panel-hand { display: flex; flex-direction: column; }
+    .panel-hand .cards-grid { overflow-y: auto; flex: 1; min-height: 0; }
 }
 
 /* ==========================================================================
