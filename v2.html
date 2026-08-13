@@ -28,7 +28,6 @@
                     <span class="mini-stat mini-stat-streak" id="streakCard" title="Current Streak"><span id="streakDisplay">No Active Streak</span></span>
                 </div>
                 <button class="icon-btn" onclick="toggleHistoryModal(true)" title="View Match History">📜</button>
-                <button class="icon-btn" onclick="togglePlayedCardsModal(true)" title="View Played Cards">🃏</button>
                 <button id="resetBtn" class="icon-btn icon-btn-danger hero-control" onclick="confirmReset()" title="Reset Entire Game">🔄</button>
             </div>
         </header>
@@ -67,17 +66,17 @@
                 <section class="panel panel-spinners">
                     <h2 class="panel-title">Scene Spinners</h2>
                     <div class="spinner-row">
-                        <span class="spinner-key">Content</span>
+                        <span class="spinner-key">Content Category</span>
                         <strong id="spin1Val" class="spinner-value">None</strong>
                         <button class="btn-spin-single hero-control" onclick="spinSingle(1)" title="Respin Content Category">🎲</button>
                     </div>
                     <div class="spinner-row">
-                        <span class="spinner-key">Colors</span>
+                        <span class="spinner-key">Parameters</span>
                         <strong id="spin2Val" class="spinner-value">None</strong>
                         <button class="btn-spin-single hero-control" onclick="spinSingle(2)" title="Respin Parameters">🎲</button>
                     </div>
                     <div class="spinner-row">
-                        <span class="spinner-key">Reuse</span>
+                        <span class="spinner-key">Limit Restrictions</span>
                         <strong id="spin3Val" class="spinner-value">None</strong>
                         <button class="btn-spin-single hero-control" onclick="spinSingle(3)" title="Respin Limit Restrictions">🎲</button>
                     </div>
@@ -128,6 +127,7 @@
                 <section class="panel panel-hand">
                     <h2 class="panel-title">Your Hand</h2>
                     <div id="playerHandGrid" class="cards-grid"></div>
+                    <button class="btn btn-secondary full-width" onclick="togglePlayedCardsModal(true)">🃏 View Played Cards</button>
                 </section>
             </aside>
 
