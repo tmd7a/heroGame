@@ -1,5 +1,5 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbz6vCg6M83zEaMLKjc-SeRzLtHbrGXfwcugtP5pnM5QgYb5U_9GBv1rBM81oB5HKO0M_Q/exec";
-const categories1 = ["Domme", "Influencer/Brat", "Adult Star", "Celebrity", "Captions", "Latex", "Cage/Keys", "Wet (Oil, Lotion)", "Bikini","Hypno/Mesmerize"];
+const categories1 = ["Domme", "Influencer/Brat", "Mature", "Celebrity", "Captions", "Latex", "Keys/Cage", "Slippery", "Bikini", "Hypnotic", "Money", "Dressed Up"];
 const categories2 = ["Red","Black","Green","Yellow","Brown","Shiny/Metallic","Pink","Purple","Blue","Orange"];
 // NEW: "Limit Restrictions" spinner. Weighted via repeated entries rather
 // than a probability table — 3x "1", 2x "2", 1x "Unlimited" out of 6 slots
@@ -341,8 +341,8 @@ function updateUI(data) {
             bonusDiceEl.classList.remove('locked');
             if (bonusStatusText) {
                 bonusStatusText.innerHTML = (userRole === "hero")
-                    ? `🎲 Critical! Roll the bonus damage die.`
-                    : `🎲 Critical hit '10' last round — a bonus roll is pending...`;
+                    ? `🎲 Critical Hit! Roll the bonus damage die.`
+                    : `🎲 10!! Critical Hit! — a bonus roll is pending...`;
             }
         }
         // Only the hero can actually roll it; villainess gets a read-only view
