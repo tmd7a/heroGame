@@ -307,8 +307,7 @@ button {
    ========================================================================== */
 .spinner-row {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     padding: 8px 0;
     border-bottom: 1px dashed var(--border-faint);
     gap: 10px;
@@ -319,12 +318,38 @@ button {
     color: var(--ink-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    flex-shrink: 0;
 }
 .spinner-value {
     color: var(--arcane);
     font-weight: 700;
     text-align: right;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
+.btn-spin-single {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-panel-inset);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    transition: border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+}
+.btn-spin-single:hover {
+    border-color: var(--arcane);
+    color: var(--arcane);
+    transform: rotate(-15deg);
+}
+.btn-spin-single:active { transform: scale(0.9) rotate(-15deg); }
 
 /* ==========================================================================
    BUTTONS
@@ -385,6 +410,39 @@ button {
 }
 .icon-btn:hover { border-color: var(--arcane); transform: translateY(-1px); }
 .icon-btn-danger:hover { border-color: var(--danger); }
+
+/* ==========================================================================
+   SHARED BONUS STATUS BANNER
+   Deliberately NOT inside a hero-control-gated panel — both roles need to
+   see when a "10! Bonus" roll is pending, and what it resolved to, since it
+   affects the villainess's expected damage on the upcoming attack.
+   ========================================================================== */
+.panel-bonus-status {
+    padding: 12px 20px;
+    border-color: var(--arcane);
+}
+.panel-bonus-status.is-pending {
+    animation: pending-pulse 1.4s ease-in-out infinite;
+}
+.panel-bonus-status.is-resolved {
+    box-shadow: 0 0 18px rgba(240, 196, 25, 0.35);
+}
+.bonus-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.bonus-status-text {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--arcane);
+}
+.bonus-status-text strong {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+}
 
 /* ==========================================================================
    ATTACK SUBMISSION CONSOLE
@@ -849,6 +907,103 @@ input[type="number"]:disabled { opacity: 0.5; }
 .history-table tr:hover { background: rgba(255, 255, 255, 0.05); }
 .history-winner-hero { color: var(--hero); font-weight: 700; }
 .history-winner-villain { color: var(--villain); font-weight: 700; }
+
+/* ==========================================================================
+   PLAYED CARDS CAROUSEL MODAL
+   ========================================================================== */
+.playedcards-modal-content {
+    max-width: 560px;
+}
+.playedcards-carousel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 28px 20px 8px;
+}
+.carousel-nav {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 50%;
+    color: var(--ink);
+    font-size: 1.6rem;
+    line-height: 1;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.carousel-nav:hover { border-color: var(--arcane); color: var(--arcane); transform: scale(1.06); }
+.carousel-nav:active { transform: scale(0.94); }
+
+.playedcards-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    width: 100%;
+    max-width: 260px;
+}
+.playedcards-featured {
+    width: 100%;
+    min-height: 250px;
+    cursor: default;
+}
+.playedcards-featured:hover { transform: none; }
+.played-round-badge {
+    position: absolute;
+    top: -10px;
+    right: 12px;
+    background: var(--arcane);
+    color: #1a1400;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(240, 196, 25, 0.4);
+}
+.playedcards-position {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding-bottom: 14px;
+}
+.playedcards-filmstrip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 20px 24px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+.playedcards-thumb {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--bg-panel-inset);
+    border: 2px solid var(--border-subtle);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.12s ease, color 0.15s ease;
+}
+.playedcards-thumb:hover { transform: translateY(-2px); }
+.playedcards-thumb.thumb-hero { border-color: rgba(78, 168, 255, 0.35); }
+.playedcards-thumb.thumb-villainess { border-color: rgba(255, 84, 112, 0.35); }
+.playedcards-thumb.thumb-hero.is-active { border-color: var(--hero); color: var(--hero); background: var(--hero-soft); }
+.playedcards-thumb.thumb-villainess.is-active { border-color: var(--villain); color: var(--villain); background: var(--villain-soft); }
 
 /* ==========================================================================
    ROLE BANNER
