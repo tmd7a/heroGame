@@ -1,6 +1,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbz6vCg6M83zEaMLKjc-SeRzLtHbrGXfwcugtP5pnM5QgYb5U_9GBv1rBM81oB5HKO0M_Q/exec";
-const categories1 = ["Domme", "Influencer/Brat", "Adult Star", "Celebrity", "Captions"];
-const categories2 = ["Blonde", "Red", "Brunette"];
+const categories1 = ["Domme", "Influencer/Brat", "Adult Star", "Celebrity", "Captions", "Latex", "Cage/Keys", "Wet (Oil, Lotion)", "Bikini","Hypno/Mesmerize"];
+const categories2 = ["Red","Black","Green","Yellow","Brown","Shiny/Metallic","Pink","Purple","Blue","Orange"];
 // NEW: "Limit Restrictions" spinner. Weighted via repeated entries rather
 // than a probability table — 3x "1", 2x "2", 1x "Unlimited" out of 6 slots
 // gives 50% / 33% / 17% odds respectively using the same random-index pick
