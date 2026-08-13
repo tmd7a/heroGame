@@ -1,6 +1,11 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbz6vCg6M83zEaMLKjc-SeRzLtHbrGXfwcugtP5pnM5QgYb5U_9GBv1rBM81oB5HKO0M_Q/exec";
 const categories1 = ["Domme", "Influencer/Brat", "Adult Star", "Celebrity", "Captions"];
 const categories2 = ["Blonde", "Red", "Brunette"];
+// NEW: "Limit Restrictions" spinner. Weighted via repeated entries rather
+// than a probability table — 3x "1", 2x "2", 1x "Unlimited" out of 6 slots
+// gives 50% / 33% / 17% odds respectively using the same random-index pick
+// as the other two spinners.
+const categories3 = ["1", "1", "1", "2", "2", "Unlimited"];
 
 let lastRoundScore = 0;
 let activeBonusValue = 0; 
@@ -101,6 +106,7 @@ function updateUI(data) {
     renderHpDial(remHp, startHp);
     document.getElementById('spin1Val').innerText = data.spinner1 || "None";
     document.getElementById('spin2Val').innerText = data.spinner2 || "None";
+    document.getElementById('spin3Val').innerText = data.spinner3 || "None";
     document.getElementById('curseValue').innerText = currentCurse;
 
     if (userRole === "villainess") {
@@ -307,26 +313,44 @@ function updateUI(data) {
     }
     document.getElementById('roundGrid').innerHTML = gridHtml;
 
-    // UX: show the "10! Bonus" die to BOTH roles now (previously hero-only),
-    // and disable clicking once it's been rolled so it can't be re-rolled.
+    // UX FIX: the "10! Bonus" indicator used to live inside the hero-only
+    // Attack Console panel (class="hero-control"), so the whole thing was
+    // display:none for the villainess regardless of what this code set on
+    // it — she never actually saw it. It's been relocated in index.html into
+    // a standalone panel (#bonusStatusPanel) that is NOT hero-gated, so both
+    // roles see the same pending/resolved state.
     const serverBonusRoll = parseInt(data.bonusRoll) || 0;
     const bonusDiceEl = document.getElementById('diceElement');
+    const bonusStatusPanel = document.getElementById('bonusStatusPanel');
+    const bonusStatusText = document.getElementById('bonusStatusText');
     if (finalRawBaseScore === 10) {
+        if (bonusStatusPanel) {
+            bonusStatusPanel.style.display = 'flex';
+            bonusStatusPanel.classList.toggle('is-pending', serverBonusRoll === 0);
+            bonusStatusPanel.classList.toggle('is-resolved', serverBonusRoll > 0);
+        }
         document.getElementById('bonusBox').style.display = 'flex';
         if (serverBonusRoll > 0) {
             activeBonusValue = serverBonusRoll;
             bonusDiceEl.innerText = serverBonusRoll;
             bonusDiceEl.classList.add('locked');
+            if (bonusStatusText) bonusStatusText.innerHTML = `✨ Bonus damage rolled: <strong>+${serverBonusRoll}</strong> — will apply to the next attack!`;
         } else {
             activeBonusValue = 0;
             bonusDiceEl.innerText = "?";
             bonusDiceEl.classList.remove('locked');
+            if (bonusStatusText) {
+                bonusStatusText.innerHTML = (userRole === "hero")
+                    ? `🎲 You rolled a 10 last round — roll your bonus die below!`
+                    : `🎲 The Hero rolled a 10 last round — a bonus roll is pending...`;
+            }
         }
         // Only the hero can actually roll it; villainess gets a read-only view
         const canRollNow = (userRole === "hero" && serverBonusRoll === 0);
         bonusDiceEl.style.pointerEvents = canRollNow ? "auto" : "none";
         bonusDiceEl.style.cursor = canRollNow ? "pointer" : "default";
     } else {
+        if (bonusStatusPanel) bonusStatusPanel.style.display = 'none';
         document.getElementById('bonusBox').style.display = 'none';
         bonusDiceEl.innerText = "?";
         bonusDiceEl.classList.remove('locked');
@@ -378,6 +402,11 @@ function updateUI(data) {
         tableHtml = `<tr><td colspan="8" style="text-align:center; color:#999;">No logged matches found.</td></tr>`;
     }
     document.getElementById('historyTableBody').innerHTML = tableHtml;
+
+    // Keep the Played Cards carousel's data in sync every poll (cheap
+    // re-render of just its own small DOM subtree, position preserved).
+    playedCardsData = data.playedCardsHistory || [];
+    renderPlayedCardsCarousel();
 }
 
 // GENERIC FIX: true if ANY dice ticket (hero's or villainess's) exists but
@@ -514,12 +543,43 @@ async function fetchGameState() {
     } catch (err) { console.error("Error fetching state:", err); }
 }
 
+// Shared by spinWheels() and spinSingle() so both pick from the same source
+// of truth per wheel index (1, 2, or 3).
+function pickForSpinner(index) {
+    if (index === 1) return categories1[Math.floor(Math.random() * categories1.length)];
+    if (index === 2) return categories2[Math.floor(Math.random() * categories2.length)];
+    if (index === 3) return categories3[Math.floor(Math.random() * categories3.length)];
+    return null;
+}
+
 async function spinWheels() {
-    let pick1 = categories1[Math.floor(Math.random() * categories1.length)];
-    let pick2 = categories2[Math.floor(Math.random() * categories2.length)];
+    let pick1 = pickForSpinner(1);
+    let pick2 = pickForSpinner(2);
+    let pick3 = pickForSpinner(3);
     document.getElementById('spin1Val').innerText = "Spinning...";
     document.getElementById('spin2Val').innerText = "Spinning...";
-    let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateSpinners", spinner1: pick1, spinner2: pick2 }) });
+    document.getElementById('spin3Val').innerText = "Spinning...";
+    let response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateSpinners", spinner1: pick1, spinner2: pick2, spinner3: pick3 }) });
+    let data = await response.json(); updateUI(data);
+}
+
+// NEW: respin just ONE wheel. Only the targeted spinner field is sent in the
+// payload — the server (see appscript.txt's updateSpinners) only writes
+// cells that were actually included in the request, so the other two
+// spinners are left untouched.
+async function spinSingle(index) {
+    let elId = `spin${index}Val`;
+    let el = document.getElementById(elId);
+    if (el) el.innerText = "Spinning...";
+
+    let payload = { action: "updateSpinners" };
+    let pick = pickForSpinner(index);
+    if (index === 1) payload.spinner1 = pick;
+    else if (index === 2) payload.spinner2 = pick;
+    else if (index === 3) payload.spinner3 = pick;
+    else return;
+
+    let response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
     let data = await response.json(); updateUI(data);
 }
 
@@ -588,6 +648,81 @@ function toggleHistoryModal(show) {
 }
 
 // Execute core cycles
+// ==========================================================================
+// PLAYED CARDS CAROUSEL — lets any player flip through every card played so
+// far this match (all roles, all rounds). Kept in sync live via updateUI()
+// (like the match-history table already is), but navigation position is
+// preserved across polls rather than resetting, so browsing isn't jarring.
+// ==========================================================================
+let playedCardsData = [];
+let playedCardsCarouselIndex = 0;
+
+function renderPlayedCardsCarousel() {
+    const stage = document.getElementById('playedCardsStage');
+    const positionEl = document.getElementById('playedCardsPosition');
+    const filmstrip = document.getElementById('playedCardsFilmstrip');
+    if (!stage || !positionEl || !filmstrip) return;
+
+    if (!playedCardsData.length) {
+        stage.innerHTML = `<div class="field-placeholder">No cards have been played yet this match.</div>`;
+        positionEl.innerText = "0 / 0";
+        filmstrip.innerHTML = "";
+        return;
+    }
+
+    // Clamp in case the array shrank (e.g. a reset) or grew since last render
+    if (playedCardsCarouselIndex < 0) playedCardsCarouselIndex = 0;
+    if (playedCardsCarouselIndex >= playedCardsData.length) playedCardsCarouselIndex = playedCardsData.length - 1;
+
+    const card = playedCardsData[playedCardsCarouselIndex];
+    const roleClass = card.role === "hero" ? "card-hero" : "card-villainess";
+    stage.innerHTML = `
+        <div class="game-card ${roleClass} playedcards-featured">
+            <div class="played-round-badge">Round ${card.round}</div>
+            <div class="card-header-title">${card.name}</div>
+            <div class="card-body-desc">${card.desc}</div>
+        </div>
+    `;
+    positionEl.innerText = `${playedCardsCarouselIndex + 1} / ${playedCardsData.length}`;
+
+    filmstrip.innerHTML = playedCardsData.map((c, idx) => {
+        const activeClass = idx === playedCardsCarouselIndex ? " is-active" : "";
+        const roleClassThumb = c.role === "hero" ? "thumb-hero" : "thumb-villainess";
+        return `<div class="playedcards-thumb ${roleClassThumb}${activeClass}" onclick="jumpToPlayedCard(${idx})" title="${c.name} — Round ${c.round}">R${c.round}</div>`;
+    }).join('');
+}
+
+function carouselStep(delta) {
+    if (!playedCardsData.length) return;
+    playedCardsCarouselIndex = (playedCardsCarouselIndex + delta + playedCardsData.length) % playedCardsData.length;
+    renderPlayedCardsCarousel();
+}
+
+function jumpToPlayedCard(idx) {
+    playedCardsCarouselIndex = idx;
+    renderPlayedCardsCarousel();
+}
+
+function togglePlayedCardsModal(show) {
+    const modal = document.getElementById('playedCardsModal');
+    if (!modal) return;
+    if (show) {
+        // Jump to the most recently played card each time the modal is opened
+        playedCardsCarouselIndex = playedCardsData.length ? playedCardsData.length - 1 : 0;
+        renderPlayedCardsCarousel();
+    }
+    modal.style.display = show ? 'flex' : 'none';
+}
+
+// Left/Right to flip, Escape to close — only while this modal is actually open
+document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('playedCardsModal');
+    if (!modal || modal.style.display !== 'flex') return;
+    if (e.key === 'ArrowLeft') carouselStep(-1);
+    else if (e.key === 'ArrowRight') carouselStep(1);
+    else if (e.key === 'Escape') togglePlayedCardsModal(false);
+});
+
 checkPlayerRole();
 setInterval(fetchGameState, 2000);
 fetchGameState();
