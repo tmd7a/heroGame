@@ -603,71 +603,65 @@ input[type="number"]:disabled { opacity: 0.5; }
     width: 100%;
     max-width: 220px;
     min-height: 230px;
-    padding: 14px;
+    padding: 0; /* art now bleeds to the card edges — footer below carries its own padding */
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     text-align: left;
     position: relative;
+    overflow: hidden; /* clips the media block's corners to match the card's border-radius */
     box-shadow: var(--shadow-soft);
     transition: transform 0.18s ease, box-shadow 0.18s ease;
+    cursor: default;
 }
 .rail-right .game-card { max-width: none; }
-.game-card:not(.disabled):hover {
+/* Only cards that are actually playable (see the is-playable class added in
+   game.js) get a pointer cursor + hover lift — arena/carousel cards are
+   read-only and shouldn't visually imply they're clickable. */
+.game-card.is-playable { cursor: pointer; }
+.game-card.is-playable:not(.disabled):hover {
     transform: translateY(-3px);
 }
 .game-card.card-hero {
     border: 2px solid var(--hero);
 }
-.game-card.card-hero:not(.disabled):hover {
+.game-card.card-hero.is-playable:not(.disabled):hover {
     box-shadow: 0 10px 24px var(--hero-soft);
 }
 .game-card.card-villainess {
     border: 2px solid var(--villain);
 }
-.game-card.card-villainess:not(.disabled):hover {
+.game-card.card-villainess.is-playable:not(.disabled):hover {
     box-shadow: 0 10px 24px var(--villain-soft);
 }
-.card-header-title {
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 6px;
-    border-bottom: 1px solid var(--border-faint);
-    padding-bottom: 6px;
-}
-.card-hero .card-header-title { color: var(--hero); }
-.card-villainess .card-header-title { color: var(--villain); }
-.card-body-desc {
-    font-size: 0.8rem;
-    color: var(--ink-muted);
-    line-height: 1.35;
-    flex-grow: 1;
-    margin-top: 4px;
-}
 
-/* Card Art — generated SVG icon badge, or real artwork if CardDatabase
-   supplies an ImageUrl (see appscript.txt) */
+/* ---- Media block: art fills the top of the card, title overlaid on it ---- */
+.card-media {
+    position: relative;
+    width: 100%;
+    height: 128px;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--bg-panel-inset);
+}
+.playedcards-featured .card-media { height: 172px; }
+
 .card-art {
     width: 100%;
-    height: 78px;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
     overflow: hidden;
-    flex-shrink: 0;
 }
 .card-art-icon-wrap {
     background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
 }
 .card-icon-svg {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
     filter: drop-shadow(0 0 7px currentColor);
 }
+.playedcards-featured .card-icon-svg { width: 64px; height: 64px; }
 .card-hero .card-icon-svg { color: var(--hero); }
 .card-villainess .card-icon-svg { color: var(--villain); }
 
@@ -676,27 +670,69 @@ input[type="number"]:disabled { opacity: 0.5; }
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
 }
-/* Slightly larger art on the featured carousel card */
-.playedcards-featured .card-art { height: 96px; }
-.playedcards-featured .card-icon-svg { width: 54px; height: 54px; }
 
-.btn-play-card {
-    width: 100%;
-    font-size: 0.72rem;
-    padding: 9px 0;
-    margin: 10px 0 0 0;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    border: none;
-    border-radius: var(--radius-sm);
-    color: #fff;
+/* Gradient scrim so the title stays legible over any artwork, plus the
+   overlaid title itself gets a role-tinted glow as a second line of defense */
+.card-media-scrim {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 72%;
+    background: linear-gradient(to top, rgba(6, 7, 10, 0.94) 0%, rgba(6, 7, 10, 0.6) 48%, transparent 100%);
+    pointer-events: none;
 }
-.card-hero .btn-play-card { background: linear-gradient(135deg, var(--hero), #2f7ed8); }
-.card-villainess .btn-play-card { background: linear-gradient(135deg, var(--villain), #c22a48); }
-.btn-play-card:disabled { opacity: 0.4; cursor: not-allowed; }
+.card-title-overlay {
+    position: absolute;
+    left: 10px; right: 10px; bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    z-index: 1;
+}
+.card-hero .card-title-overlay { color: var(--hero); text-shadow: 0 0 10px var(--hero-glow), 0 2px 5px rgba(0, 0, 0, 0.95); }
+.card-villainess .card-title-overlay { color: var(--villain); text-shadow: 0 0 10px var(--villain-glow), 0 2px 5px rgba(0, 0, 0, 0.95); }
+
+/* ---- Footer: fully solid background — always readable regardless of art or text length ---- */
+.card-footer {
+    padding: 10px 12px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--bg-panel-raised);
+}
+.card-body-desc {
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    line-height: 1.35;
+    margin: 0;
+}
+
+/* Persistent (not hover-only, so it still works on touch) small play
+   affordance, replacing the old full-width "Activate Power" button now that
+   the whole card is the click target. */
+.card-play-hint {
+    align-self: flex-start;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+.card-hero .card-play-hint { color: var(--hero); }
+.card-villainess .card-play-hint { color: var(--villain); }
+.game-card.card-hero.is-playable:hover .card-play-hint { background: var(--hero-soft); }
+.game-card.card-villainess.is-playable:hover .card-play-hint { background: var(--villain-soft); }
+.game-card.is-playable:active .card-play-hint { transform: scale(0.94); }
 
 /* Spent / Silenced / Locked / Pending card state masks */
 .game-card.disabled {
