@@ -237,10 +237,15 @@ function updateUI(data) {
 
             fieldHtml += `
                 <div class="game-card ${roleClass}">
-                    ${getCardArtHtml(card)}
-                    <div class="card-header-title">${card.name}</div>
-                    <div class="card-body-desc">${card.desc}</div>
-                    ${diceElementHtml}
+                    <div class="card-media">
+                        ${getCardArtHtml(card)}
+                        <div class="card-media-scrim"></div>
+                        <div class="card-title-overlay">${card.name}</div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="card-body-desc">${card.desc}</div>
+                        ${diceElementHtml}
+                    </div>
                 </div>
             `;
         });
@@ -278,7 +283,8 @@ function updateUI(data) {
             
             // A card is disabled if it's spent, locked by round, if the hero is silenced, if the player already played a card this round, OR if it's mid-flight!
             let isDisabled = card.spent || card.lockedByRound || (userRole === "hero" && isSilenced) || roleHasPlayedThisRound || isPending;
-            let cardClass = `game-card ${roleClass}` + (isDisabled ? " disabled" : "") + (isPending ? " card-pending" : "");
+            let playableClass = isDisabled ? "" : " is-playable";
+            let cardClass = `game-card ${roleClass}` + playableClass + (isDisabled ? " disabled" : "") + (isPending ? " card-pending" : "");
             
             let stampLabel = "";
             if (isPending) stampLabel = `<div class="card-stamp-locked pending-stamp">⏳ DEPLOYING...</div>`;
@@ -287,16 +293,26 @@ function updateUI(data) {
             else if (userRole === "hero" && isSilenced) stampLabel = `<div class="card-stamp-locked">SILENCED</div>`;
             else if (roleHasPlayedThisRound && !card.spent) stampLabel = `<div class="card-stamp-locked">1 CARD MAX</div>`; // Dynamic feedback text
 
+            // UX: the whole card is now the click target (replacing the old
+            // "Activate Power" button) so the art has room to breathe. The
+            // click handler is only attached when the card is actually
+            // playable — disabled cards already get pointer-events:none from
+            // the .disabled class, but omitting the handler entirely here
+            // avoids ever calling activateCard() on a non-playable card.
+            let cardClickAttr = isDisabled ? "" : ` onclick="activateCard('${card.id}', '${card.effectType}', ${card.value || 0}, '${card.name.replace(/'/g, "\\'")}', '${card.desc.replace(/'/g, "\\'")}')"`;
+
             handHtml += `
-                <div class="${cardClass}">
+                <div class="${cardClass}"${cardClickAttr}>
                     ${stampLabel}
-                    ${getCardArtHtml(card)}
-                    <div class="card-header-title">${card.name}</div>
-                    <div class="card-body-desc">${card.desc}</div>
-                    <button class="btn-play-card" ${isDisabled ? 'disabled' : ''} 
-                        onclick="activateCard('${card.id}', '${card.effectType}', ${card.value || 0}, '${card.name.replace(/'/g, "\\'")}', '${card.desc.replace(/'/g, "\\'")}')">
-                        Activate Power
-                    </button>
+                    <div class="card-media">
+                        ${getCardArtHtml(card)}
+                        <div class="card-media-scrim"></div>
+                        <div class="card-title-overlay">${card.name}</div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="card-body-desc">${card.desc}</div>
+                        ${!isDisabled ? `<div class="card-play-hint">▶ Tap to Activate</div>` : ""}
+                    </div>
                 </div>
             `;
         });
@@ -720,9 +736,14 @@ function renderPlayedCardsCarousel() {
     stage.innerHTML = `
         <div class="game-card ${roleClass} playedcards-featured">
             <div class="played-round-badge">Round ${card.round}</div>
-            ${getCardArtHtml(card)}
-            <div class="card-header-title">${card.name}</div>
-            <div class="card-body-desc">${card.desc}</div>
+            <div class="card-media">
+                ${getCardArtHtml(card)}
+                <div class="card-media-scrim"></div>
+                <div class="card-title-overlay">${card.name}</div>
+            </div>
+            <div class="card-footer">
+                <div class="card-body-desc">${card.desc}</div>
+            </div>
         </div>
     `;
     positionEl.innerText = `${playedCardsCarouselIndex + 1} / ${playedCardsData.length}`;
