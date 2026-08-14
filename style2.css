@@ -583,7 +583,11 @@ input[type="number"]:disabled { opacity: 0.5; }
     flex-wrap: wrap;
     align-items: stretch;
 }
-.rail-right .cards-grid { flex-direction: column; }
+.rail-right .cards-grid {
+    flex-direction: column;
+    flex-wrap: nowrap; /* BUG FIX: column + wrap was overflowing into a second horizontal column once cards ran out of vertical room, triggering a horizontal scrollbar. Cards should only ever stack in one column and scroll vertically. */
+    overflow-x: hidden; /* defensive backstop against any future horizontal overflow */
+}
 .field-placeholder {
     color: var(--ink-faint);
     font-style: italic;
@@ -598,7 +602,7 @@ input[type="number"]:disabled { opacity: 0.5; }
     border-radius: var(--radius-md);
     width: 100%;
     max-width: 220px;
-    min-height: 190px;
+    min-height: 230px;
     padding: 14px;
     display: flex;
     flex-direction: column;
@@ -643,6 +647,41 @@ input[type="number"]:disabled { opacity: 0.5; }
     flex-grow: 1;
     margin-top: 4px;
 }
+
+/* Card Art — generated SVG icon badge, or real artwork if CardDatabase
+   supplies an ImageUrl (see appscript.txt) */
+.card-art {
+    width: 100%;
+    height: 78px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.card-art-icon-wrap {
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+}
+.card-icon-svg {
+    width: 44px;
+    height: 44px;
+    filter: drop-shadow(0 0 7px currentColor);
+}
+.card-hero .card-icon-svg { color: var(--hero); }
+.card-villainess .card-icon-svg { color: var(--villain); }
+
+.card-art-image-wrap { background: rgba(0, 0, 0, 0.25); }
+.card-art-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+/* Slightly larger art on the featured carousel card */
+.playedcards-featured .card-art { height: 96px; }
+.playedcards-featured .card-icon-svg { width: 54px; height: 54px; }
+
 .btn-play-card {
     width: 100%;
     font-size: 0.72rem;
