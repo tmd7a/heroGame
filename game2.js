@@ -37,6 +37,45 @@ function parseDiceEffect(effectType) {
     return { actionPrefix: match[1], diceSides: parseInt(match[2]) };
 }
 
+// ==========================================================================
+// CARD ART SYSTEM
+// Generic SVG icon badges keyed off the card's effect-type action prefix
+// (the same prefix parseDiceEffect derives, e.g. "BLOCK_D6" -> "BLOCK").
+// New cards automatically get a fitting icon with zero code changes needed,
+// as long as their effectType follows the existing PREFIX or PREFIX_D<n>
+// convention. If CardDatabase has an ImageUrl for a card (an optional column
+// — see appscript.txt), that real artwork is used instead automatically.
+// ==========================================================================
+const CARD_ICON_PATHS = {
+    BLOCK:    '<path d="M32 6 L54 14 V32 C54 46 44 56 32 60 C20 56 10 46 10 32 V14 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 18 V44 M22 26 L42 26" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    ATTACK:   '<path d="M14 50 L42 22" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M36 16 L48 16 L48 28 Z" fill="currentColor"/><path d="M50 50 L22 22" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M16 16 L28 16 L28 28 Z" fill="currentColor"/>',
+    HEAL:     '<path d="M32 54 C14 42 8 30 8 21 C8 13 14 8 21 8 C26 8 30 11 32 15 C34 11 38 8 43 8 C50 8 56 13 56 21 C56 30 50 42 32 54 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 22 V38 M24 30 H40" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    SILENCE:  '<circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="4"/><path d="M22 26 C22 20 26 16 32 16 C38 16 42 20 42 26 V32 C42 38 38 42 32 42 C26 42 22 38 22 32 Z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M14 14 L50 50" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    RESPIN:   '<path d="M46 20 A18 18 0 1 1 32 14" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M46 8 V20 H34" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
+    SETSCORE: '<circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="12" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="3" fill="currentColor"/>',
+    DEFAULT:  '<path d="M32 8 L38 24 L56 24 L42 35 L47 52 L32 42 L17 52 L22 35 L8 24 L26 24 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>'
+};
+
+function getCardArtHtml(card) {
+    // Custom artwork wins if present — falls back to the generated icon on
+    // load failure (bad/broken URL) rather than leaving a blank box.
+    if (card.imageUrl) {
+        let safeUrl = String(card.imageUrl).replace(/"/g, '&quot;');
+        return `<div class="card-art card-art-image-wrap">
+            <img class="card-art-image" src="${safeUrl}" alt="${String(card.name || '').replace(/"/g, '&quot;')}" loading="lazy"
+                 onerror="this.closest('.card-art').innerHTML = getCardIconSvg('${String(card.effectType || '').replace(/'/g, "\\'")}');">
+        </div>`;
+    }
+    return `<div class="card-art card-art-icon-wrap">${getCardIconSvg(card.effectType)}</div>`;
+}
+
+function getCardIconSvg(effectType) {
+    let effect = parseDiceEffect(effectType);
+    let prefix = effect ? effect.actionPrefix : String(effectType || "").toUpperCase();
+    let pathData = CARD_ICON_PATHS[prefix] || CARD_ICON_PATHS.DEFAULT;
+    return `<svg class="card-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${pathData}</svg>`;
+}
+
 // UX: draws the "Fate Dial" — a radial arc that depletes as the hero's HP
 // drops, shifting green -> gold -> crimson as danger rises. Driven purely by
 // a style property + CSS transition, so repeated polls with an unchanged
@@ -198,6 +237,7 @@ function updateUI(data) {
 
             fieldHtml += `
                 <div class="game-card ${roleClass}">
+                    ${getCardArtHtml(card)}
                     <div class="card-header-title">${card.name}</div>
                     <div class="card-body-desc">${card.desc}</div>
                     ${diceElementHtml}
@@ -250,6 +290,7 @@ function updateUI(data) {
             handHtml += `
                 <div class="${cardClass}">
                     ${stampLabel}
+                    ${getCardArtHtml(card)}
                     <div class="card-header-title">${card.name}</div>
                     <div class="card-body-desc">${card.desc}</div>
                     <button class="btn-play-card" ${isDisabled ? 'disabled' : ''} 
@@ -679,6 +720,7 @@ function renderPlayedCardsCarousel() {
     stage.innerHTML = `
         <div class="game-card ${roleClass} playedcards-featured">
             <div class="played-round-badge">Round ${card.round}</div>
+            ${getCardArtHtml(card)}
             <div class="card-header-title">${card.name}</div>
             <div class="card-body-desc">${card.desc}</div>
         </div>
