@@ -601,7 +601,7 @@ input[type="number"]:disabled { opacity: 0.5; }
     background: var(--bg-panel-raised);
     border-radius: var(--radius-md);
     width: 100%;
-    max-width: 220px;
+    max-width: 300px;
     min-height: 230px;
     padding: 0; /* art now bleeds to the card edges — footer below carries its own padding */
     display: flex;
@@ -679,21 +679,8 @@ input[type="number"]:disabled { opacity: 0.5; }
 .card-media-scrim {
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    height: 100%; /* extended to cover the full image — the gradient stops (not the block height) control where the fade actually becomes visible */
-    /* Blends into the SAME color as the card's own background (--bg-panel-raised)
-       rather than a generic black vignette, so the image dissolves seamlessly
-       into the footer below it instead of ending in a hard edge. Fade is
-       essentially invisible until ~40% up, and fully gone by ~58% up —
-       i.e. the visible blend happens in the bottom 55-60% of the image, with
-       the top staying clean and untouched. */
-    background: linear-gradient(
-        to top,
-        rgba(27, 35, 48, 1) 0%,
-        rgba(27, 35, 48, 0.85) 18%,
-        rgba(27, 35, 48, 0.5) 34%,
-        rgba(27, 35, 48, 0.18) 48%,
-        rgba(27, 35, 48, 0) 58%
-    );
+    height: 72%;
+    background: linear-gradient(to top, rgba(6, 7, 10, 0.94) 0%, rgba(6, 7, 10, 0.6) 48%, transparent 100%);
     pointer-events: none;
 }
 .card-title-overlay {
@@ -1037,7 +1024,7 @@ input[type="number"]:disabled { opacity: 0.5; }
     justify-content: center;
     min-height: 260px;
     width: 100%;
-    max-width: 260px;
+    max-width: 300px;
 }
 .playedcards-featured {
     width: 100%;
