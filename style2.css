@@ -150,11 +150,14 @@ button {
     .app-main { overflow: hidden; height: 100%; }
     .rail, .stage-center { overflow-y: auto; height: 100%; padding-right: 2px; }
     .panel-hand, .panel-arena { flex: 1; min-height: 0; }
-    .panel-arena .active-cards-grid { overflow-y: auto; }
-    /* NEW: proper flex column so the "View Played Cards" button stays pinned
-       at the bottom while just the hand itself scrolls internally. */
-    .panel-hand { display: flex; flex-direction: column; }
-    .panel-hand .cards-grid { overflow-y: auto; flex: 1; min-height: 0; }
+    /* BUG FIX: .panel-arena previously only had overflow-y:auto on its inner
+       grid without the panel ITSELF being a proper flex column — so the grid
+       had no bounded height to actually scroll against, and taller/wider
+       cards (see the recent art-size increase) spilled past the panel into
+       panel-attack below instead of scrolling. Same fix already applied to
+       .panel-hand for the same underlying issue. */
+    .panel-hand, .panel-arena { display: flex; flex-direction: column; }
+    .panel-hand .cards-grid, .panel-arena .active-cards-grid { overflow-y: auto; flex: 1; min-height: 0; }
 }
 
 /* ==========================================================================
